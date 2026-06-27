@@ -4,7 +4,7 @@
         background-image: linear-gradient(rgba(248, 250, 252, 0.95), rgba(248, 250, 252, 0.95)), url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1200');
         background-attachment: fixed;
         background-size: cover;
-        background-position: center;
+        background-position:npx plugins add vercel/vercel-plugin center;
     }
     /* العلامة المائية */
     .watermark-bg {
@@ -78,3 +78,6 @@
         background-color: rgba(15, 23, 42, 0.75);
         backdrop-filter: blur(4px);
     }
+#data-container {
+    display: none; /* إخفاء المكان حتى يتم جلب البيانات */
+}

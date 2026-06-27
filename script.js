@@ -934,3 +934,18 @@ function renderTestimonialsAdmin(data) {
         </div>`);
     });
 }
+function displayData(data) {
+    const container = document.getElementById('data-container');
+    container.innerHTML = ''; // مسح أي كود قديم
+    
+    // هنا نضيف البيانات بشكل مرتب
+    data.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'data-item';
+        div.innerHTML = `<h3>${item.name}</h3><p>${item.details}</p>`;
+        container.appendChild(div);
+    });
+
+    // الآن نظهر البيانات بعد اكتمال التحميل
+    container.style.display = 'block'; 
+}
