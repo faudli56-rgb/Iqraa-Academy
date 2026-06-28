@@ -7,17 +7,21 @@ async function callGoogleAPI(action, params = []) {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ action: action, params: params })
         });
-        const data = await response.json();
-        return data;
+        // التحقق من نوع الرد لضمان عدم ظهور أكواد خام
+        const text = await response.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error("الرد ليس JSON، قد يكون هناك خطأ في السيرفر:", text);
+            return { success: false, error: "خطأ في تنسيق البيانات" };
+        }
     } catch (error) {
-        console.error("❌ انقطع الاتصال بالسيرفر:", error);
-        return { success: false, error: "فشل الاتصال بالسيرفر" };
+        console.error("❌ انقطع الاتصال:", error);
+        return { success: false, error: "فشل الاتصال" };
     }
 }
-
 // ==========================================
 // المتغيرات العالمية والتهيئة
 // ==========================================
@@ -963,18 +967,4 @@ function renderTestimonialsAdmin(data) {
             <button onclick="deleteTestimonial('${t.id}')" class="text-rose-600 px-2 font-bold hover:underline">حذف</button>
         </div>`);
     });
-}
-
-function displayData(data) {
-    const container = document.getElementById('data-container');
-    container.innerHTML = '';
-
-    data.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'data-item';
-        div.innerHTML = `<h3>${item.name}</h3><p>${item.details}</p>`;
-        container.appendChild(div);
-    });
-
-    container.style.display = 'block';
 }
