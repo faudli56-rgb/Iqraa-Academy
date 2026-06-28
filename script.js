@@ -548,21 +548,31 @@ async function loadDashboardData(role, code, name) {
     }
 }
 
+// ==========================================
+// دالة عرض الإحصائيات (النسخة الوحيدة - بدون تكرار)
+// ==========================================
 async function loadStatsData(role, code, name) {
-    const res = await callGoogleAPI('getAdminStats', [role, code, name]);
-    if(res && res.success) {
-        var boxes = document.querySelectorAll('.text-2xl');
-        if(boxes.length >= 4) {
-            boxes[0].innerText = res.studentsCount; 
-            boxes[1].innerText = res.certsCount; 
-            if (res.userType === 'admin') {
-                boxes[2].innerHTML = '<select class="w-full text-center bg-transparent border-0 focus:ring-0 cursor-pointer" style="font-size:16px; outline:none; appearance:none;"><option value="">العدد: ' + res.marketersCount + ' 🔽</option>' + res.marketersOptions + '</select>';
-                boxes[3].innerHTML = '<select class="w-full text-center bg-transparent border-0 focus:ring-0 cursor-pointer text-green-700 font-bold" style="font-size:16px; outline:none; appearance:none;"><option value="">الإجمالي: ' + res.totalRevenueStr + ' 🔽</option>' + res.revenueOptions + '</select>';
-            } else {
-                boxes[2].innerText = "-"; 
-                boxes[3].innerText = res.personalRevenue;
+    try {
+        const boxes = document.querySelectorAll('.text-2xl');
+        const res = await callGoogleAPI('getAdminStats', [role, code, name]);
+        
+        if (res && res.success) {
+            if (boxes.length >= 4) {
+                boxes[0].innerText = res.studentsCount || 0;
+                boxes[1].innerText = res.certsCount || 0;
+                if (res.userType === 'admin') {
+                    boxes[2].innerHTML = '<select class="w-full text-center bg-transparent border-0 focus:ring-0 cursor-pointer" style="font-size:16px; outline:none; appearance:none;"><option value="">العدد: ' + res.marketersCount + ' 🔽</option>' + res.marketersOptions + '</select>';
+                    boxes[3].innerHTML = '<select class="w-full text-center bg-transparent border-0 focus:ring-0 cursor-pointer text-green-700 font-bold" style="font-size:16px; outline:none; appearance:none;"><option value="">الإجمالي: ' + res.totalRevenueStr + ' 🔽</option>' + res.revenueOptions + '</select>';
+                } else {
+                    boxes[2].innerText = "-";
+                    boxes[3].innerText = res.personalRevenue || '0$';
+                }
             }
+        } else {
+            console.error("خطأ في جلب البيانات:", res?.error || 'خطأ غير معروف');
         }
+    } catch (error) {
+        console.error("فشل الاتصال بالسيرفر:", error);
     }
 }
 
@@ -933,11 +943,11 @@ function renderTestimonialsAdmin(data) {
         </div>`);
     });
 }
+
 function displayData(data) {
     const container = document.getElementById('data-container');
-    container.innerHTML = ''; // مسح أي كود قديم
+    container.innerHTML = '';
     
-    // هنا نضيف البيانات بشكل مرتب
     data.forEach(item => {
         const div = document.createElement('div');
         div.className = 'data-item';
@@ -945,28 +955,5 @@ function displayData(data) {
         container.appendChild(div);
     });
 
-    // الآن نظهر البيانات بعد اكتمال التحميل
     container.style.display = 'block'; 
-}
-// دالة عرض البيانات بشكل مرتب ومحمي من ظهور الكود الخام
-async function loadStatsData(role, code, name) {
-    try {
-        // نظهر حالة تحميل أو نقوم بإخفاء العناصر حتى تصل البيانات
-        const boxes = document.querySelectorAll('.text-2xl');
-        
-        const res = await callGoogleAPI('getAdminStats', [role, code, name]);
-        
-        if (res && res.success) {
-            // هنا يتم تحديث البيانات في الواجهة
-            if (boxes.length >= 4) {
-                boxes[0].innerText = res.studentsCount; // مثال للبيانات
-                boxes[1].innerText = res.teachersCount;
-                // ... وبقية الخانات
-            }
-        } else {
-            console.error("خطأ في جلب البيانات:", res.error);
-        }
-    } catch (error) {
-        console.error("فشل الاتصال بالسيرفر:", error);
-    }
 }
