@@ -2,11 +2,12 @@
 // المحرك الأساسي للتواصل مع جوجل 
 // ==========================================
 const API_URL = "https://script.google.com/macros/s/AKfycbwLBXt7K6hcgrt_EBBxn-BS-jRTO8C2_mz4sF3JSzOfVG8GU1MzWNrHdKLbxFbRPnba/exec";
+
 async function callGoogleAPI(action, params = []) {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ action: action, params: params })
         });
         const data = await response.json();
@@ -31,15 +32,16 @@ var currentAdIndex = 0;
 var totalViews = 1482;
 var totalClicks = 342;
 try {
-    if(localStorage.getItem('site_views')) totalViews = parseInt(localStorage.getItem('site_views'), 10);
-    if(localStorage.getItem('wa_clicks')) totalClicks = parseInt(localStorage.getItem('wa_clicks'), 10);
-} catch(e) {}
+    if (localStorage.getItem('site_views')) totalViews = parseInt(localStorage.getItem('site_views'), 10);
+    if (localStorage.getItem('wa_clicks')) totalClicks = parseInt(localStorage.getItem('wa_clicks'), 10);
+} catch (e) {}
 
 function initializeWebsiteLayout() {
-    try { totalViews += 1; localStorage.setItem('site_views', totalViews); } catch(e) {}
+    try { totalViews += 1;
+        localStorage.setItem('site_views', totalViews); } catch (e) {}
     loadCoursesFromServer();
     loadNewsFromServer();
-    loadTestimonialsFromServer(); 
+    loadTestimonialsFromServer();
     renderAdsSlider();
     setTimeout(function() { document.getElementById('welcome-popup').classList.remove('hidden'); }, 1200);
     setInterval(function() { moveAdSlide(1); }, 5000);
@@ -51,23 +53,27 @@ function initializeWebsiteLayout() {
 function toggleMobileMenu() {
     var menu = document.getElementById('mobile-menu');
     var icon = document.getElementById('menu-toggle-icon');
-    if (menu.classList.contains('hidden')) { menu.classList.remove('hidden'); icon.innerHTML = "&#10006;"; } 
-    else { menu.classList.add('hidden'); icon.innerHTML = "&#9776;"; }
+    if (menu.classList.contains('hidden')) { menu.classList.remove('hidden');
+        icon.innerHTML = "&#10006;"; } else { menu.classList.add('hidden');
+        icon.innerHTML = "&#9776;"; }
 }
 
 function closePopup() { document.getElementById('welcome-popup').classList.add('hidden'); }
-function popupActionRegister() { closePopup(); navigateTo('register'); }
+
+function popupActionRegister() { closePopup();
+    navigateTo('register'); }
 
 function navigateTo(pageId) {
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('header nav a').forEach(b => b.classList.remove('nav-active'));
-    if(document.getElementById('page-' + pageId)) document.getElementById('page-' + pageId).classList.add('active');
-    if(document.getElementById('btn-' + pageId)) document.getElementById('btn-' + pageId).classList.add('nav-active');
+    if (document.getElementById('page-' + pageId)) document.getElementById('page-' + pageId).classList.add('active');
+    if (document.getElementById('btn-' + pageId)) document.getElementById('btn-' + pageId).classList.add('nav-active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function trackButtonClick(buttonName) {
-    if(buttonName === 'WhatsApp_Float') { try { totalClicks += 1; localStorage.setItem('wa_clicks', totalClicks); } catch(e) {} }
+    if (buttonName === 'WhatsApp_Float') { try { totalClicks += 1;
+            localStorage.setItem('wa_clicks', totalClicks); } catch (e) {} }
 }
 
 // ==========================================
@@ -76,9 +82,10 @@ function trackButtonClick(buttonName) {
 function renderAdsSlider() {
     var container = document.getElementById('ads-slider-container');
     var dots = document.getElementById('ads-dots-container');
-    if(!container) return;
-    container.innerHTML = ''; dots.innerHTML = '';
-    
+    if (!container) return;
+    container.innerHTML = '';
+    dots.innerHTML = '';
+
     globalAds.forEach(function(ad, idx) {
         let badgeClass = ad.type === "إعلان عاجل" ? "bg-rose-600" : (ad.type === "إعلان رئيسي" ? "bg-[#D4A017]" : "bg-blue-600");
         container.innerHTML += `
@@ -90,7 +97,7 @@ function renderAdsSlider() {
                 <p class="text-xs text-slate-300 font-bold mb-4"><i class="fas fa-clock"></i> ${ad.date}</p>
             </div>
         </div>`;
-        dots.innerHTML += `<div onclick="setAdSlide(${idx})" class="dot transition ${idx===0?'active':''}"></div>`;
+        dots.innerHTML += `<div onclick="setAdSlide(${idx})" class="dot transition ${idx === 0 ? 'active' : ''}"></div>`;
     });
 }
 
@@ -102,49 +109,50 @@ function moveAdSlide(dir) {
 function setAdSlide(idx) {
     currentAdIndex = idx;
     var slider = document.getElementById('ads-slider-container');
-    if(slider) slider.style.transform = "translateX(" + (idx * 100) + "%)";
+    if (slider) slider.style.transform = "translateX(" + (idx * 100) + "%)";
     document.querySelectorAll('.dot').forEach(function(d, i) {
-        if (i === idx) d.classList.add('active'); else d.classList.remove('active');
+        if (i === idx) d.classList.add('active');
+        else d.classList.remove('active');
     });
 }
 
 // ==========================================
-// جلب وعرض الدورات والأخبار (Vercel API)
+// جلب وعرض الدورات والأخبار
 // ==========================================
 async function loadCoursesFromServer() {
     const courses = await callGoogleAPI('fetchCoursesFromSheet');
-    if(courses && !courses.error) {
-        globalCourses = courses; 
-        renderCourses(courses); 
-        updateRegistrationDropdown(courses); 
+    if (courses && !courses.error) {
+        globalCourses = courses;
+        renderCourses(courses);
+        updateRegistrationDropdown(courses);
     }
 }
 
-async function loadNewsFromServer() { 
-    const news = await callGoogleAPI('fetchNewsFromSheet'); 
-    if(news && !news.error) renderNews(news);
+async function loadNewsFromServer() {
+    const news = await callGoogleAPI('fetchNewsFromSheet');
+    if (news && !news.error) renderNews(news);
 }
 
 async function loadTestimonialsFromServer() {
     const data = await callGoogleAPI('fetchTestimonialsFromSheet');
-    if(data && !data.error) {
+    if (data && !data.error) {
         renderTestimonialsHome(data);
         renderTestimonialsAdmin(data);
     }
 }
 
 // ==========================================
-// دوال رسم وتصفية البيانات (HTML)
+// دوال رسم البيانات
 // ==========================================
 function renderCourses(courses) {
     var fullContainer = document.getElementById('courses-list-container');
     var homeFeaturedContainer = document.getElementById('home-featured-courses');
-    var adminCoursesList = document.getElementById('admin-courses-list'); 
-    
-    if(fullContainer) fullContainer.innerHTML = ''; 
-    if(homeFeaturedContainer) homeFeaturedContainer.innerHTML = ''; 
-    if(adminCoursesList) adminCoursesList.innerHTML = ''; 
-    
+    var adminCoursesList = document.getElementById('admin-courses-list');
+
+    if (fullContainer) fullContainer.innerHTML = '';
+    if (homeFeaturedContainer) homeFeaturedContainer.innerHTML = '';
+    if (adminCoursesList) adminCoursesList.innerHTML = '';
+
     courses.forEach(function(c, index) {
         var cardMarkup = `
         <div class="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden flex flex-col justify-between text-right transition hover:shadow-xl" data-category="${c.category}">
@@ -165,11 +173,11 @@ function renderCourses(courses) {
                 </div>
             </div>
         </div>`;
-        
-        if(fullContainer) fullContainer.insertAdjacentHTML('beforeend', cardMarkup);
-        if(homeFeaturedContainer && index < 3) homeFeaturedContainer.insertAdjacentHTML('beforeend', cardMarkup);
 
-        if(adminCoursesList) {
+        if (fullContainer) fullContainer.insertAdjacentHTML('beforeend', cardMarkup);
+        if (homeFeaturedContainer && index < 3) homeFeaturedContainer.insertAdjacentHTML('beforeend', cardMarkup);
+
+        if (adminCoursesList) {
             adminCoursesList.insertAdjacentHTML('beforeend', `
             <div class="flex justify-between items-center p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs">
                 <span class="font-bold text-[#0B1F4D] truncate w-1/3">${c.title}</span>
@@ -190,27 +198,27 @@ function filterCourses(category) {
 }
 
 function updateRegistrationDropdown(courses) {
-    var selectBox = document.getElementById('reg-course'); 
-    if(!selectBox) return;
+    var selectBox = document.getElementById('reg-course');
+    if (!selectBox) return;
     selectBox.innerHTML = '<option value="">-- انقر هنا لتحديد المسار التدريبي --</option>';
     courses.forEach(function(c) { selectBox.insertAdjacentHTML('beforeend', `<option value="${c.title}">${c.title}</option>`); });
 }
 
-function selectCourseDirectly(courseTitle) { 
-    document.getElementById('reg-course').value = courseTitle; 
+function selectCourseDirectly(courseTitle) {
+    document.getElementById('reg-course').value = courseTitle;
     showSelectedCourseDetails();
-    navigateTo('register'); 
+    navigateTo('register');
 }
 
 function showSelectedCourseDetails() {
     var selectedTitle = document.getElementById('reg-course').value;
     var course = null;
-    for(var i=0; i<globalCourses.length; i++) {
-        if(globalCourses[i].title === selectedTitle) { course = globalCourses[i]; break; }
+    for (var i = 0; i < globalCourses.length; i++) {
+        if (globalCourses[i].title === selectedTitle) { course = globalCourses[i]; break; }
     }
     var display = document.getElementById('course-dynamic-info');
-    if(!display) return;
-    
+    if (!display) return;
+
     if (course) {
         display.innerHTML = `
             <div class="flex items-center gap-2"><i class="fas fa-info-circle text-blue-500"></i> تفاصيل المسار المختار:</div>
@@ -228,18 +236,18 @@ function showSelectedCourseDetails() {
 function renderNews(news) {
     var container = document.getElementById('news-list-container');
     var adminNewsList = document.getElementById('admin-news-list');
-    
-    if(container) {
+
+    if (container) {
         container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
-        container.innerHTML = ''; 
+        container.innerHTML = '';
     }
-    if(adminNewsList) adminNewsList.innerHTML = ''; 
-    
+    if (adminNewsList) adminNewsList.innerHTML = '';
+
     news.forEach(function(n) {
         let shareTxt = encodeURIComponent(n.title + " - شاهد التفاصيل عبر موقع أكاديمية اقرأ");
         let imgHtml = n.image ? `<img src="${n.image}" class="w-full h-40 object-cover rounded-xl mb-3" loading="lazy">` : '';
-        
-        if(container) {
+
+        if (container) {
             container.insertAdjacentHTML('beforeend', `
             <div class="bg-white p-5 rounded-2xl shadow border border-slate-100 text-right hover:shadow-lg transition cursor-pointer flex flex-col justify-between" onclick="window.open('https://whatsapp.com/channel/0029VbCDK6M4IBhBR3jvVY0Y', '_blank')">
                 <div>
@@ -254,7 +262,7 @@ function renderNews(news) {
             </div>`);
         }
 
-        if(adminNewsList) {
+        if (adminNewsList) {
             adminNewsList.insertAdjacentHTML('beforeend', `
             <div class="flex justify-between items-center p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs hover:bg-slate-100 transition">
                 <span class="font-bold text-[#0B1F4D] truncate w-2/3">${n.title}</span>
@@ -274,12 +282,12 @@ function searchNews() {
 }
 
 // ==========================================
-// التسجيل والتواصل وفحص الشهادات (Vercel API)
+// التسجيل والتواصل وفحص الشهادات
 // ==========================================
 async function handleNewRegistration(e) {
-    e.preventDefault(); 
+    e.preventDefault();
     var submitBtn = document.getElementById('submit-btn');
-    if(!submitBtn) return;
+    if (!submitBtn) return;
     var originalText = submitBtn.innerText;
     submitBtn.disabled = true;
     submitBtn.innerText = 'جاري التسجيل والربط...';
@@ -300,25 +308,27 @@ async function handleNewRegistration(e) {
     };
 
     const res = await callGoogleAPI('registerTraineeFinal', [studentData]);
-    
-    if(res && res.success) {
+
+    if (res && res.success) {
         var formChildren = document.getElementById('registration-form').children;
         for (var i = 0; i < formChildren.length; i++) {
             if (formChildren[i].id !== 'successMessage') { formChildren[i].style.display = 'none'; }
         }
-        
+
         var successDiv = document.getElementById('successMessage');
-        if(successDiv) {
+        if (successDiv) {
             successDiv.classList.remove('hidden');
             successDiv.style.display = 'block';
-            if(document.getElementById('displayOrderID')) {
+            if (document.getElementById('displayOrderID')) {
                 document.getElementById('displayOrderID').innerText = res.orderID;
             }
         }
         setTimeout(function() { window.open("https://whatsapp.com/channel/0029VbCDK6M4IBhBR3jvVY0Y", "_blank"); }, 3000);
     } else {
         alert("❌ خطأ أثناء التسجيل: " + (res ? res.error : "غير معروف"));
-        submitBtn.disabled = false; submitBtn.innerText = originalText; submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalText;
+        submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
     }
 }
 
@@ -331,27 +341,28 @@ function handleContactSubmit(e) {
         method: document.getElementById('contact-method').value,
         text: document.getElementById('contact-msg').value
     };
-    
-    if(msgObj.method === 'whatsapp') {
+
+    if (msgObj.method === 'whatsapp') {
         var waText = encodeURIComponent("مرحباً إدارة أكاديمية اقرأ،\nالاسم: " + msgObj.name + "\nالنوع: " + msgObj.type + "\nالرسالة: " + msgObj.text);
         window.open('https://wa.me/967777644293?text=' + waText, '_blank');
     } else if (msgObj.method === 'email') {
         var mailText = encodeURIComponent("الاسم: " + msgObj.name + "\nالرسالة: " + msgObj.text);
         window.open('mailto:aqraakadymyt51@gmail.com?subject=' + encodeURIComponent(msgObj.type) + '&body=' + mailText, '_blank');
     }
-    
+
     btn.innerText = "تم التوجيه بنجاح!";
-    setTimeout(function() { btn.innerText = "إرسال الرسالة الحين"; e.target.reset(); }, 3000);
+    setTimeout(function() { btn.innerText = "إرسال الرسالة الحين";
+        e.target.reset(); }, 3000);
 }
 
 async function runCertificateVerification() {
     var certId = document.getElementById('cert-search-input').value.trim();
     var resBox = document.getElementById('cert-result-box');
-    if(!certId) { alert("لطفاً، أدخل رقم الشهادة الموحد."); return; }
+    if (!certId) { alert("لطفاً، أدخل رقم الشهادة الموحد."); return; }
     resBox.classList.remove('hidden');
     resBox.className = "mt-8 p-5 text-center text-xs font-bold border rounded-2xl bg-slate-50";
     resBox.innerHTML = "جاري فحص القيود والملفات الفورية بمخازن الأكاديمية...";
-    
+
     const r = await callGoogleAPI('verifyCertificate', [certId]);
     renderVerificationResult(r);
 }
@@ -359,7 +370,7 @@ async function runCertificateVerification() {
 function renderVerificationResult(result) {
     var resBox = document.getElementById('cert-result-box');
     resBox.classList.remove('hidden');
-    if(result && result.found) {
+    if (result && result.found) {
         var qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(window.location.href + "?cert=" + result.id);
         resBox.className = "mt-8 p-6 rounded-2xl border bg-emerald-50/70 border-emerald-200 text-right space-y-3 text-xs text-slate-700 shadow-sm";
         resBox.innerHTML = `
@@ -380,9 +391,10 @@ function renderVerificationResult(result) {
 }
 
 // ==========================================
-// نظام تسجيل الدخول ولوحة التحكم (Vercel API)
+// نظام تسجيل الدخول ولوحة التحكم
 // ==========================================
 function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+
 function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
 
 async function handleLoginSubmit(e) {
@@ -390,25 +402,26 @@ async function handleLoginSubmit(e) {
     var btn = document.getElementById('loginSubmitBtn');
     var user = document.getElementById('loginUser').value;
     var pass = document.getElementById('loginPass').value;
-    
-    btn.innerText = "جاري التحقق..."; btn.disabled = true;
+
+    btn.innerText = "جاري التحقق...";
+    btn.disabled = true;
 
     const res = await callGoogleAPI('authenticateUser', [user, pass]);
-    
-    if(res && res.success) {
+
+    if (res && res.success) {
         sessionStorage.setItem('loggedIn', 'true');
         sessionStorage.setItem('role', res.role);
         sessionStorage.setItem('code', res.marketerCode);
         sessionStorage.setItem('name', res.name);
-        
+
         document.getElementById('main-content').style.display = 'none';
         document.getElementById('admin-content').style.display = 'block';
-        
+
         document.getElementById('userNameDisplay').innerText = res.name;
         var roleAr = res.role === 'admin' ? "مدير النظام" : (res.role === 'marketer' ? "مسوق معتمد" : "مدرب معتمد");
         document.getElementById('userRoleDisplay').innerText = roleAr;
-        
-        if(res.role === 'marketer' && res.marketerCode) {
+
+        if (res.role === 'marketer' && res.marketerCode) {
             document.getElementById('marketer-link-box').classList.remove('hidden');
             var siteUrl = window.location.href.split('?')[0];
             document.getElementById('marketer-link-input').value = siteUrl + "?ref=" + res.marketerCode;
@@ -416,7 +429,7 @@ async function handleLoginSubmit(e) {
             document.getElementById('marketer-link-box').classList.add('hidden');
         }
 
-        if(res.role !== 'admin') {
+        if (res.role !== 'admin') {
             document.getElementById('tab-btn-content').style.display = 'none';
             document.getElementById('tab-btn-settings').style.display = 'none';
             document.getElementById('tab-title-users').innerText = "طلابي المسجلين";
@@ -426,14 +439,15 @@ async function handleLoginSubmit(e) {
             document.getElementById('tab-btn-settings').style.display = 'block';
             document.getElementById('tab-title-users').innerText = "إدارة المتدربين";
         }
-        
+
         loadDashboardData(res.role, res.marketerCode, res.name);
         loadStatsData(res.role, res.marketerCode, res.name);
         closeLoginModal();
     } else {
         alert(res ? res.message : "خطأ في الاتصال بالخادم");
     }
-    btn.innerText = "دخول"; btn.disabled = false;
+    btn.innerText = "دخول";
+    btn.disabled = false;
 }
 
 function logout() {
@@ -463,39 +477,39 @@ function switchAdminTab(tabId, btnElement) {
 function copyMarketerLink() {
     var copyText = document.getElementById("marketer-link-input");
     copyText.select();
-    copyText.setSelectionRange(0, 99999); 
+    copyText.setSelectionRange(0, 99999);
     document.execCommand("copy");
-    
+
     var btn = document.getElementById("btn-copy-link");
     btn.innerHTML = '<i class="fas fa-check"></i> تم النسخ!';
     btn.classList.replace('bg-emerald-600', 'bg-emerald-800');
-    setTimeout(function() { 
-        btn.innerHTML = '<i class="fas fa-copy ml-1"></i> نسخ الرابط'; 
+    setTimeout(function() {
+        btn.innerHTML = '<i class="fas fa-copy ml-1"></i> نسخ الرابط';
         btn.classList.replace('bg-emerald-800', 'bg-emerald-600');
     }, 3000);
 }
 
 // ==========================================
-// دوال الإدارة والعمليات (Vercel API)
+// دوال الإدارة والعمليات
 // ==========================================
 async function loadDashboardData(role, code, name) {
     const data = await callGoogleAPI('getDashboardData', [role, code, name]);
     var tbody = document.getElementById('dataTableBody');
-    if(!tbody) return;
+    if (!tbody) return;
     tbody.innerHTML = '';
-    
-    if(data && data.length > 0 && data[0].error) {
+
+    if (data && data.length > 0 && data[0].error) {
         tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500 font-bold">خطأ: ${data[0].error}</td></tr>`;
         return;
     }
-    if(!data || data.length === 0) {
+    if (!data || data.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500 font-bold">لا يوجد متدربين حالياً لعرضهم.</td></tr>`;
         return;
     }
 
     var countElement = document.getElementById('totalRecordsCount');
-    if(countElement) countElement.innerText = data.length; 
-    
+    if (countElement) countElement.innerText = data.length;
+
     let safeRole = role ? role.toString().toLowerCase().trim() : '';
     let isAdmin = (safeRole === 'admin' || safeRole === 'مدير');
 
@@ -540,22 +554,22 @@ async function loadDashboardData(role, code, name) {
             ${adminCell}
         </tr>`;
     });
-    
+
     var actionCol = document.getElementById('actionColumn');
-    if(actionCol) {
-        if(isAdmin) actionCol.classList.remove('hidden');
+    if (actionCol) {
+        if (isAdmin) actionCol.classList.remove('hidden');
         else actionCol.classList.add('hidden');
     }
 }
 
 // ==========================================
-// دالة عرض الإحصائيات (النسخة الوحيدة - بدون تكرار)
+// دالة عرض الإحصائيات (نسخة واحدة فقط - صحيحة)
 // ==========================================
 async function loadStatsData(role, code, name) {
     try {
         const boxes = document.querySelectorAll('.text-2xl');
         const res = await callGoogleAPI('getAdminStats', [role, code, name]);
-        
+
         if (res && res.success) {
             if (boxes.length >= 4) {
                 boxes[0].innerText = res.studentsCount || 0;
@@ -577,9 +591,9 @@ async function loadStatsData(role, code, name) {
 }
 
 async function updateStudentState(orderId, newStatus) {
-    if(!confirm("هل تريد تغيير حالة الطلب إلى: " + newStatus + "؟")) return;
+    if (!confirm("هل تريد تغيير حالة الطلب إلى: " + newStatus + "؟")) return;
     const res = await callGoogleAPI('changeTraineeStatus', [orderId, newStatus]);
-    if(res && res.success) {
+    if (res && res.success) {
         alert("✅ تم تغيير الحالة بنجاح إلى: " + res.newStatus);
         let currentRole = sessionStorage.getItem('role');
         let currentCode = sessionStorage.getItem('code');
@@ -607,9 +621,8 @@ async function handleSaveSettings() {
     };
 
     const res = await callGoogleAPI('saveSettingsFromAdmin', [settingsData]);
-    if(res && res.success) { alert("تم حفظ الإعدادات بنجاح!"); }
-    else { alert("خطأ في الحفظ: " + (res ? res.error : "غير معروف")); }
-    
+    if (res && res.success) { alert("تم حفظ الإعدادات بنجاح!"); } else { alert("خطأ في الحفظ: " + (res ? res.error : "غير معروف")); }
+
     btn.innerHTML = originalText;
     btn.disabled = false;
 }
@@ -618,7 +631,8 @@ function handleAddCourse(e) {
     e.preventDefault();
     var btn = document.getElementById('btn-submit-course');
     var originalText = btn.innerText;
-    btn.innerText = "جاري الرفع..."; btn.disabled = true;
+    btn.innerText = "جاري الرفع...";
+    btn.disabled = true;
 
     var fileInput = document.getElementById('adm-course-img');
     var sendData = async function(base64Img) {
@@ -631,14 +645,15 @@ function handleAddCourse(e) {
             image: base64Img
         };
         const res = await callGoogleAPI('addCourseFromAdmin', [data]);
-        if(res && res.success){ 
-            alert("تم نشر الدورة بنجاح!"); 
-            document.getElementById('form-add-course').reset(); 
-            loadCoursesFromServer(); 
-        } else { 
-            alert("خطأ: " + (res ? res.error : "غير معروف")); 
+        if (res && res.success) {
+            alert("تم نشر الدورة بنجاح!");
+            document.getElementById('form-add-course').reset();
+            loadCoursesFromServer();
+        } else {
+            alert("خطأ: " + (res ? res.error : "غير معروف"));
         }
-        btn.innerText = originalText; btn.disabled = false; 
+        btn.innerText = originalText;
+        btn.disabled = false;
     };
 
     if (fileInput.files.length > 0) {
@@ -654,7 +669,7 @@ async function deleteCourse(title) {
     const res = await callGoogleAPI('removeCourseFinal', [title]);
     if (res && res.success) {
         alert("✅ تم حذف الدورة بنجاح");
-        loadCoursesFromServer(); 
+        loadCoursesFromServer();
     } else {
         alert("❌ فشل الحذف: " + (res ? res.error : "خطأ غير معروف"));
     }
@@ -664,7 +679,8 @@ function handleAddNews(e) {
     e.preventDefault();
     var btn = document.getElementById('btn-submit-news');
     var originalText = btn.innerText;
-    btn.innerText = "جاري النشر..."; btn.disabled = true;
+    btn.innerText = "جاري النشر...";
+    btn.disabled = true;
 
     var fileInput = document.getElementById('adm-news-img');
     var sendData = async function(base64Img) {
@@ -674,14 +690,15 @@ function handleAddNews(e) {
             image: base64Img
         };
         const res = await callGoogleAPI('addNewsFromAdmin', [data]);
-        if(res && res.success){ 
-            alert("تم بث الخبر بنجاح!"); 
-            document.getElementById('form-add-news').reset(); 
-            loadNewsFromServer(); 
-        } else { 
-            alert("خطأ: " + (res ? res.error : "غير معروف")); 
+        if (res && res.success) {
+            alert("تم بث الخبر بنجاح!");
+            document.getElementById('form-add-news').reset();
+            loadNewsFromServer();
+        } else {
+            alert("خطأ: " + (res ? res.error : "غير معروف"));
         }
-        btn.innerText = originalText; btn.disabled = false; 
+        btn.innerText = originalText;
+        btn.disabled = false;
     };
 
     if (fileInput.files.length > 0) {
@@ -697,7 +714,7 @@ async function deleteNews(title) {
     const res = await callGoogleAPI('removeNewsFinal', [title]);
     if (res && res.success) {
         alert("✅ تم حذف الخبر بنجاح");
-        loadNewsFromServer(); 
+        loadNewsFromServer();
     } else {
         alert("❌ فشل الحذف: " + (res ? res.error : "خطأ غير معروف"));
     }
@@ -707,19 +724,19 @@ function filterAdminTable() {
     var input = document.getElementById("admin-search-box");
     if (!input) return;
     var filter = input.value.toLowerCase().trim();
-    
+
     var table = document.getElementById("dataTableBody");
     if (!table) return;
     var tr = table.getElementsByTagName("tr");
 
     for (var i = 0; i < tr.length; i++) {
-        var tdOrder = tr[i].getElementsByTagName("td")[0]; 
-        var tdName = tr[i].getElementsByTagName("td")[1];  
-        
+        var tdOrder = tr[i].getElementsByTagName("td")[0];
+        var tdName = tr[i].getElementsByTagName("td")[1];
+
         if (tdOrder && tdName) {
             var txtOrder = tdOrder.textContent || tdOrder.innerText;
             var txtName = tdName.textContent || tdName.innerText;
-            
+
             if (txtOrder.toLowerCase().indexOf(filter) > -1 || txtName.toLowerCase().indexOf(filter) > -1) {
                 tr[i].style.display = "";
             } else {
@@ -730,51 +747,51 @@ function filterAdminTable() {
 }
 
 // ==========================================
-// صفحات الهبوط وإدارة التفاصيل (Vercel API)
+// صفحات الهبوط وإدارة التفاصيل
 // ==========================================
 async function openLandingPage(courseTitle) {
     var landingContainer = document.getElementById('landing-page-container');
     var mainContent = document.getElementById('main-content');
     var loader = document.getElementById('lp-loader');
-    
-    if(!landingContainer || !mainContent) {
+
+    if (!landingContainer || !mainContent) {
         alert("تنبيه: واجهة صفحة الهبوط غير موجودة. تأكد من استدعاء CourseLanding في Index.html");
         return;
     }
 
     mainContent.style.display = 'none';
     landingContainer.classList.remove('hidden');
-    if(loader) loader.classList.remove('hidden');
+    if (loader) loader.classList.remove('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     const data = await callGoogleAPI('fetchCourseLandingData', [courseTitle]);
-    if(loader) loader.classList.add('hidden');
-    
-    if(data && data.success) {
+    if (loader) loader.classList.add('hidden');
+
+    if (data && data.success) {
         try {
-            if(document.getElementById('lp-title')) document.getElementById('lp-title').innerText = data.title || '';
-            if(document.getElementById('lp-image')) document.getElementById('lp-image').src = data.image || '';
-            if(document.getElementById('lp-desc')) document.getElementById('lp-desc').innerText = data.description || '';
-            if(document.getElementById('lp-duration')) document.getElementById('lp-duration').innerText = data.duration || '';
-            if(document.getElementById('lp-trainer')) document.getElementById('lp-trainer').innerText = data.trainer || '';
-            if(document.getElementById('lp-target')) document.getElementById('lp-target').innerText = data.targetAudience || '';
-            if(document.getElementById('lp-fee')) document.getElementById('lp-fee').innerText = data.fee || '';
-            
+            if (document.getElementById('lp-title')) document.getElementById('lp-title').innerText = data.title || '';
+            if (document.getElementById('lp-image')) document.getElementById('lp-image').src = data.image || '';
+            if (document.getElementById('lp-desc')) document.getElementById('lp-desc').innerText = data.description || '';
+            if (document.getElementById('lp-duration')) document.getElementById('lp-duration').innerText = data.duration || '';
+            if (document.getElementById('lp-trainer')) document.getElementById('lp-trainer').innerText = data.trainer || '';
+            if (document.getElementById('lp-target')) document.getElementById('lp-target').innerText = data.targetAudience || '';
+            if (document.getElementById('lp-fee')) document.getElementById('lp-fee').innerText = data.fee || '';
+
             var waText = encodeURIComponent("مرحباً أكاديمية اقرأ، أرغب بالاستفسار عن برنامج: " + data.title);
-            if(document.getElementById('lp-whatsapp')) document.getElementById('lp-whatsapp').href = "https://wa.me/967777644293?text=" + waText;
+            if (document.getElementById('lp-whatsapp')) document.getElementById('lp-whatsapp').href = "https://wa.me/967777644293?text=" + waText;
 
             var formatList = function(text, iconClass) {
-                if(!text) return "<li>لا توجد بيانات تفصيلية</li>";
-                return text.toString().split('-').filter(function(i) { return i.trim() !== ''; }).map(function(i) { 
-                    return '<li><i class="' + iconClass + ' ml-2"></i>' + i.trim() + '</li>'; 
+                if (!text) return "<li>لا توجد بيانات تفصيلية</li>";
+                return text.toString().split('-').filter(function(i) { return i.trim() !== ''; }).map(function(i) {
+                    return '<li><i class="' + iconClass + ' ml-2"></i>' + i.trim() + '</li>';
                 }).join('');
             };
-            
-            if(document.getElementById('lp-objectives')) document.getElementById('lp-objectives').innerHTML = formatList(data.objectives, "fas fa-check text-emerald-500");
-            if(document.getElementById('lp-syllabus')) document.getElementById('lp-syllabus').innerHTML = formatList(data.syllabus, "fas fa-angle-left text-[#D4A017]");
-            
+
+            if (document.getElementById('lp-objectives')) document.getElementById('lp-objectives').innerHTML = formatList(data.objectives, "fas fa-check text-emerald-500");
+            if (document.getElementById('lp-syllabus')) document.getElementById('lp-syllabus').innerHTML = formatList(data.syllabus, "fas fa-angle-left text-[#D4A017]");
+
             landingContainer.setAttribute('data-current-course', data.title);
-        } catch(e) {
+        } catch (e) {
             alert("حدث خطأ فني أثناء ترتيب البيانات: " + e.message);
             closeLandingPage();
         }
@@ -788,16 +805,16 @@ function closeLandingPage() {
     var landingContainer = document.getElementById('landing-page-container');
     var mainContent = document.getElementById('main-content');
     var loader = document.getElementById('lp-loader');
-    
-    if(loader) loader.classList.add('hidden');
-    if(landingContainer) landingContainer.classList.add('hidden');
-    if(mainContent) mainContent.style.display = 'block';
+
+    if (loader) loader.classList.add('hidden');
+    if (landingContainer) landingContainer.classList.add('hidden');
+    if (mainContent) mainContent.style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function registerFromLanding() {
     var landingContainer = document.getElementById('landing-page-container');
-    if(!landingContainer) return;
+    if (!landingContainer) return;
     var courseTitle = landingContainer.getAttribute('data-current-course');
     closeLandingPage();
     selectCourseDirectly(courseTitle);
@@ -806,21 +823,23 @@ function registerFromLanding() {
 async function openDetailsModal(title, event) {
     document.getElementById('det-course-title').value = title;
     document.getElementById('det-course-name').innerText = title;
-    document.getElementById('det-img').value = ''; 
-    
+    document.getElementById('det-img').value = '';
+
     var btn = event ? event.currentTarget : null;
     var originalText = btn ? btn.innerText : 'التفاصيل';
-    if(btn) { btn.innerText = "..."; btn.disabled = true; } 
+    if (btn) { btn.innerText = "...";
+        btn.disabled = true; }
 
     const data = await callGoogleAPI('fetchCourseLandingData', [title]);
-    if(btn) { btn.innerText = originalText; btn.disabled = false; }
-    
-    if(data && data.success) { 
+    if (btn) { btn.innerText = originalText;
+        btn.disabled = false; }
+
+    if (data && data.success) {
         document.getElementById('det-desc').value = data.description || '';
         document.getElementById('det-obj').value = data.objectives || '';
         document.getElementById('det-syl').value = data.syllabus || '';
         document.getElementById('det-target').value = data.targetAudience || '';
-    } else { 
+    } else {
         document.getElementById('det-desc').value = '';
         document.getElementById('det-obj').value = '';
         document.getElementById('det-syl').value = '';
@@ -834,10 +853,11 @@ function closeDetailsModal() { document.getElementById('details-modal').classLis
 function saveCourseDetails(event) {
     var btn = event.currentTarget;
     var originalText = btn.innerText;
-    btn.innerText = "جاري الرفع والحفظ..."; btn.disabled = true;
-    
+    btn.innerText = "جاري الرفع والحفظ...";
+    btn.disabled = true;
+
     var fileInput = document.getElementById('det-img');
-    
+
     var sendData = async function(base64Img) {
         var detailsData = {
             title: document.getElementById('det-course-title').value,
@@ -850,16 +870,17 @@ function saveCourseDetails(event) {
 
         const res = await callGoogleAPI('saveDetailsToSheet', [detailsData]);
         alert(res ? res.message || res.error || "تم التنفيذ" : "خطأ غير معروف");
-        if(res && res.success) closeDetailsModal();
-        btn.innerText = originalText; btn.disabled = false;
+        if (res && res.success) closeDetailsModal();
+        btn.innerText = originalText;
+        btn.disabled = false;
     };
 
     if (fileInput.files.length > 0) {
         var reader = new FileReader();
         reader.onload = function(ev) { sendData(ev.target.result); };
         reader.readAsDataURL(fileInput.files[0]);
-    } else { 
-        sendData(""); 
+    } else {
+        sendData("");
     }
 }
 
@@ -882,10 +903,10 @@ async function submitCourseEdit() {
         fee: document.getElementById('edit-fee').value,
         category: document.getElementById('edit-cat').value
     };
-    
+
     document.getElementById('edit-course-modal').classList.add('hidden');
     const res = await callGoogleAPI('updateCourseFromAdmin', [id, data]);
-    alert("تم حفظ التعديلات!"); 
+    alert("تم حفظ التعديلات!");
     loadCoursesFromServer();
 }
 
@@ -896,16 +917,16 @@ async function addTestimonial() {
         text: document.getElementById('adm-test-text').value
     };
     const res = await callGoogleAPI('addTestimonialFromAdmin', [data]);
-    if(res) {
-        alert("تم الإضافة!"); 
-        document.getElementById('adm-test-name').value = ''; 
-        document.getElementById('adm-test-text').value = ''; 
+    if (res) {
+        alert("تم الإضافة!");
+        document.getElementById('adm-test-name').value = '';
+        document.getElementById('adm-test-text').value = '';
         loadTestimonialsFromServer();
     }
 }
 
 async function deleteTestimonial(id) {
-    if(confirm("حذف الرأي؟")) {
+    if (confirm("حذف الرأي؟")) {
         await callGoogleAPI('deleteTestimonialFromAdmin', [id]);
         loadTestimonialsFromServer();
     }
@@ -913,10 +934,10 @@ async function deleteTestimonial(id) {
 
 function renderTestimonialsHome(data) {
     var container = document.getElementById('testimonials-dynamic-container');
-    if(!container) return;
+    if (!container) return;
     container.className = 'grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8';
     container.innerHTML = '';
-    
+
     data.forEach(function(t) {
         var stars = '⭐'.repeat(t.rating || 5);
         container.insertAdjacentHTML('beforeend', `
@@ -933,7 +954,7 @@ function renderTestimonialsHome(data) {
 
 function renderTestimonialsAdmin(data) {
     var container = document.getElementById('admin-testimonials-list');
-    if(!container) return;
+    if (!container) return;
     container.innerHTML = '';
     data.forEach(function(t) {
         container.insertAdjacentHTML('beforeend', `
@@ -947,7 +968,7 @@ function renderTestimonialsAdmin(data) {
 function displayData(data) {
     const container = document.getElementById('data-container');
     container.innerHTML = '';
-    
+
     data.forEach(item => {
         const div = document.createElement('div');
         div.className = 'data-item';
@@ -955,5 +976,5 @@ function displayData(data) {
         container.appendChild(div);
     });
 
-    container.style.display = 'block'; 
+    container.style.display = 'block';
 }
