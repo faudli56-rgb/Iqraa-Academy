@@ -1,8 +1,7 @@
 // ==========================================
 // المحرك الأساسي للتواصل مع جوجل 
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbwLBXt7K6hcgrt_EBBxn-BS-jRT08C2_mz4sF3JSzOfVG8GU1MzWNrHdKLbxFbRPnba/exec";
-
+const API_URL = "https://script.google.com/macros/s/AKfycbwLBXt7K6hcgrt_EBBxn-BS-jRTO8C2_mz4sF3JSzOfVG8GU1MzWNrHdKLbxFbRPnba/exec";
 async function callGoogleAPI(action, params = []) {
     try {
         const response = await fetch(API_URL, {
@@ -948,4 +947,26 @@ function displayData(data) {
 
     // الآن نظهر البيانات بعد اكتمال التحميل
     container.style.display = 'block'; 
+}
+// دالة عرض البيانات بشكل مرتب ومحمي من ظهور الكود الخام
+async function loadStatsData(role, code, name) {
+    try {
+        // نظهر حالة تحميل أو نقوم بإخفاء العناصر حتى تصل البيانات
+        const boxes = document.querySelectorAll('.text-2xl');
+        
+        const res = await callGoogleAPI('getAdminStats', [role, code, name]);
+        
+        if (res && res.success) {
+            // هنا يتم تحديث البيانات في الواجهة
+            if (boxes.length >= 4) {
+                boxes[0].innerText = res.studentsCount; // مثال للبيانات
+                boxes[1].innerText = res.teachersCount;
+                // ... وبقية الخانات
+            }
+        } else {
+            console.error("خطأ في جلب البيانات:", res.error);
+        }
+    } catch (error) {
+        console.error("فشل الاتصال بالسيرفر:", error);
+    }
 }

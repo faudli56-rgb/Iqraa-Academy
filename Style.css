@@ -4,13 +4,13 @@
         background-image: linear-gradient(rgba(248, 250, 252, 0.95), rgba(248, 250, 252, 0.95)), url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1200');
         background-attachment: fixed;
         background-size: cover;
-        background-position:npx plugins add vercel/vercel-plugin center;
+        background-position: center;
     }
     /* العلامة المائية */
     .watermark-bg {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
-        background-image: url('https://drive.google.com/thumbnail?id=1HIvQPEQOYKoIjifDJG4F4bWVf4K-UA66&sz=w1500');
+        background-image: url('https://lh3.googleusercontent.com/d/1HiVQPEQOYKoIjifDJG4F4bWVf4K-UA66');
         background-size: cover;
         background-position: center;
         opacity: 0.08; /* شفافية 10% */
@@ -81,3 +81,4 @@
 #data-container {
     display: none; /* إخفاء المكان حتى يتم جلب البيانات */
 }
+boxes.forEach(box => box.style.visibility = 'visible');
