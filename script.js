@@ -1,7 +1,7 @@
 // ==========================================
 // أكاديمية اقرأ - التطبيق الرئيسي (Vercel)
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbyj6qPqQ90BtkUEpGsAyTO7wGQYw-2UOo1FTWi1sTIrlPdR4If1wUrOwhdQEI3wd6iu/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzjbwjsg8hrL5329R4pnXy5ZfBFy04dPcGYJzTaQ5f1wRvTsNDVfkMPzItGp_cd4Ll1/exec";
 
 let currentUser = null;
 
