@@ -1,20 +1,24 @@
 // ==========================================
-// المحرك الأساسي للتواصل مع جوجل 
+// أكاديمية اقرأ - التطبيق الرئيسي (Vercel)
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbwLBXt7K6hcgrt_EBBxn-BS-jRTO8C2_mz4sF3JSzOfVG8GU1MzWNrHdKLbxFbRPnba/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyj6qPqQ90BtkUEpGsAyTO7wGQYw-2UOo1FTWi1sTIrlPdR4If1wUrOwhdQEI3wd6iu/exec";
 
+let currentUser = null;
+
+// ==========================================
+// دوال الاتصال بـ Google API
+// ==========================================
 async function callGoogleAPI(action, params = []) {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({ action: action, params: params })
         });
-        // التحقق من نوع الرد لضمان عدم ظهور أكواد خام
         const text = await response.text();
         try {
             return JSON.parse(text);
         } catch (e) {
-            console.error("الرد ليس JSON، قد يكون هناك خطأ في السيرفر:", text);
+            console.error("الرد ليس JSON:", text);
             return { success: false, error: "خطأ في تنسيق البيانات" };
         }
     } catch (error) {
@@ -22,949 +26,468 @@ async function callGoogleAPI(action, params = []) {
         return { success: false, error: "فشل الاتصال" };
     }
 }
-// ==========================================
-// المتغيرات العالمية والتهيئة
-// ==========================================
-var globalCourses = [];
-var globalAds = [
-    { title: "سجل الآن في دبلوم إدارة الأعمال", type: "إعلان رئيسي", date: "ينتهي في 2026-12-31", img: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=800", link: "#" },
-    { title: "خصم 50% على دورات الذكاء الاصطناعي", type: "إعلان عاجل", date: "ينتهي في 2026-08-01", img: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=800", link: "#" },
-    { title: "الدفعة الجديدة للغة الإنجليزية", type: "إعلان عادي", date: "مستمر", img: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=800", link: "#" }
-];
-var currentAdIndex = 0;
-
-var totalViews = 1482;
-var totalClicks = 342;
-try {
-    if (localStorage.getItem('site_views')) totalViews = parseInt(localStorage.getItem('site_views'), 10);
-    if (localStorage.getItem('wa_clicks')) totalClicks = parseInt(localStorage.getItem('wa_clicks'), 10);
-} catch (e) {}
-
-function initializeWebsiteLayout() {
-    try { totalViews += 1;
-        localStorage.setItem('site_views', totalViews); } catch (e) {}
-    loadCoursesFromServer();
-    loadNewsFromServer();
-    loadTestimonialsFromServer();
-    renderAdsSlider();
-    setTimeout(function() { document.getElementById('welcome-popup').classList.remove('hidden'); }, 1200);
-    setInterval(function() { moveAdSlide(1); }, 5000);
-}
 
 // ==========================================
-// دوال الواجهة والتنقل
+// التنقل بين الصفحات
 // ==========================================
-function toggleMobileMenu() {
-    var menu = document.getElementById('mobile-menu');
-    var icon = document.getElementById('menu-toggle-icon');
-    if (menu.classList.contains('hidden')) { menu.classList.remove('hidden');
-        icon.innerHTML = "&#10006;"; } else { menu.classList.add('hidden');
-        icon.innerHTML = "&#9776;"; }
-}
-
-function closePopup() { document.getElementById('welcome-popup').classList.add('hidden'); }
-
-function popupActionRegister() { closePopup();
-    navigateTo('register'); }
-
 function navigateTo(pageId) {
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('header nav a').forEach(b => b.classList.remove('nav-active'));
-    if (document.getElementById('page-' + pageId)) document.getElementById('page-' + pageId).classList.add('active');
-    if (document.getElementById('btn-' + pageId)) document.getElementById('btn-' + pageId).classList.add('nav-active');
+    const target = document.getElementById(`page-${pageId}`);
+    if (target) target.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (pageId === 'home') loadHomeData();
+    if (pageId === 'courses') loadCoursesPage();
+    if (pageId === 'news') loadNewsPage();
+    if (pageId === 'verification') resetVerification();
+    if (pageId === 'register') loadRegistrationForm();
+    if (pageId === 'dashboard' && currentUser) loadDashboard();
+    updateActiveNav(pageId);
 }
 
-function trackButtonClick(buttonName) {
-    if (buttonName === 'WhatsApp_Float') { try { totalClicks += 1;
-            localStorage.setItem('wa_clicks', totalClicks); } catch (e) {} }
-}
-
-// ==========================================
-// الإعلانات والسلايدر
-// ==========================================
-function renderAdsSlider() {
-    var container = document.getElementById('ads-slider-container');
-    var dots = document.getElementById('ads-dots-container');
-    if (!container) return;
-    container.innerHTML = '';
-    dots.innerHTML = '';
-
-    globalAds.forEach(function(ad, idx) {
-        let badgeClass = ad.type === "إعلان عاجل" ? "bg-rose-600" : (ad.type === "إعلان رئيسي" ? "bg-[#D4A017]" : "bg-blue-600");
-        container.innerHTML += `
-        <div class="slide bg-slate-900 cursor-pointer" onclick="navigateTo('register')">
-            <img src="${ad.img}" class="w-full h-full object-cover opacity-60">
-            <div class="absolute inset-0 flex flex-col justify-end p-8 text-white text-right bg-gradient-to-t from-black/80 to-transparent">
-                <span class="${badgeClass} text-[10px] font-bold px-3 py-1 rounded-full w-max mb-3 shadow">${ad.type}</span>
-                <h3 class="text-3xl font-black mb-2">${ad.title}</h3>
-                <p class="text-xs text-slate-300 font-bold mb-4"><i class="fas fa-clock"></i> ${ad.date}</p>
-            </div>
-        </div>`;
-        dots.innerHTML += `<div onclick="setAdSlide(${idx})" class="dot transition ${idx === 0 ? 'active' : ''}"></div>`;
-    });
-}
-
-function moveAdSlide(dir) {
-    currentAdIndex = (currentAdIndex + dir + globalAds.length) % globalAds.length;
-    setAdSlide(currentAdIndex);
-}
-
-function setAdSlide(idx) {
-    currentAdIndex = idx;
-    var slider = document.getElementById('ads-slider-container');
-    if (slider) slider.style.transform = "translateX(" + (idx * 100) + "%)";
-    document.querySelectorAll('.dot').forEach(function(d, i) {
-        if (i === idx) d.classList.add('active');
-        else d.classList.remove('active');
-    });
+function updateActiveNav(pageId) {
+    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+    const navItem = document.getElementById(`nav-${pageId}`);
+    if (navItem) navItem.classList.add('active');
 }
 
 // ==========================================
-// جلب وعرض الدورات والأخبار
+// الهيدر
 // ==========================================
-async function loadCoursesFromServer() {
-    const courses = await callGoogleAPI('fetchCoursesFromSheet');
-    if (courses && !courses.error) {
-        globalCourses = courses;
-        renderCourses(courses);
-        updateRegistrationDropdown(courses);
-    }
+function buildHeader() {
+    const header = document.getElementById('header');
+    header.innerHTML = `
+    <div class="bg-[#0B1F4D] text-white sticky top-0 z-50">
+      <div class="container mx-auto flex justify-between items-center py-3 px-4">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="navigateTo('home')">
+          <img src="https://drive.google.com/thumbnail?id=1vcLrgWhcDhA5vOlei4WasRYKzU5YJ6qh&sz=w500" class="w-10 h-10 rounded-xl border border-[#D4A017]" alt="logo">
+          <div>
+            <h1 class="font-black text-lg">أكاديمية إقرأ</h1>
+            <p class="text-[10px] text-[#D4A017]">للاستشارات والتدريب</p>
+          </div>
+        </div>
+        <nav class="flex items-center gap-4 text-sm font-semibold">
+          <span onclick="navigateTo('home')" class="nav-link active cursor-pointer hover:text-[#D4A017]" id="nav-home">الرئيسية</span>
+          <span onclick="navigateTo('courses')" class="nav-link cursor-pointer hover:text-[#D4A017]" id="nav-courses">الدورات</span>
+          <span onclick="navigateTo('news')" class="nav-link cursor-pointer hover:text-[#D4A017]" id="nav-news">الأخبار</span>
+          <span onclick="navigateTo('verification')" class="nav-link cursor-pointer hover:text-[#D4A017]" id="nav-verification">تحقق</span>
+          <span id="auth-area">
+            <span onclick="navigateTo('login')" class="text-emerald-400 font-bold cursor-pointer">🔑 دخول</span>
+          </span>
+        </nav>
+      </div>
+    </div>`;
 }
 
-async function loadNewsFromServer() {
-    const news = await callGoogleAPI('fetchNewsFromSheet');
-    if (news && !news.error) renderNews(news);
-}
-
-async function loadTestimonialsFromServer() {
-    const data = await callGoogleAPI('fetchTestimonialsFromSheet');
-    if (data && !data.error) {
-        renderTestimonialsHome(data);
-        renderTestimonialsAdmin(data);
-    }
-}
-
-// ==========================================
-// دوال رسم البيانات
-// ==========================================
-function renderCourses(courses) {
-    var fullContainer = document.getElementById('courses-list-container');
-    var homeFeaturedContainer = document.getElementById('home-featured-courses');
-    var adminCoursesList = document.getElementById('admin-courses-list');
-
-    if (fullContainer) fullContainer.innerHTML = '';
-    if (homeFeaturedContainer) homeFeaturedContainer.innerHTML = '';
-    if (adminCoursesList) adminCoursesList.innerHTML = '';
-
-    courses.forEach(function(c, index) {
-        var cardMarkup = `
-        <div class="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden flex flex-col justify-between text-right transition hover:shadow-xl" data-category="${c.category}">
-            <img class="h-44 w-full object-cover" src="${c.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600'}" loading="lazy">
-            <div class="p-5 flex-1 flex flex-col justify-between">
-                <div class="mb-4">
-                    <span class="bg-slate-100 text-[#0B1F4D] text-[10px] font-bold px-2.5 py-1 rounded-md border border-slate-200">${c.category}</span>
-                    <h3 class="font-bold text-md text-[#0B1F4D] mt-3">${c.title}</h3>
-                    <p class="text-xs text-slate-500 mt-1.5"><i class="fas fa-chalkboard-teacher ml-1.5 text-[#D4A017]"></i> المدرب: ${c.trainer}</p>
-                    <p class="text-xs text-slate-400 mt-0.5"><i class="fas fa-clock ml-1.5 text-slate-400"></i> المدة: ${c.duration || '36 ساعة تدريبية'}</p>
-                </div>
-                <div class="flex justify-between items-center pt-4 border-t border-slate-50">
-                    <span class="text-amber-600 font-extrabold text-sm">${c.fee}</span>
-                    <div class="flex gap-2">
-                        <button onclick="openLandingPage('${c.title}')" class="bg-slate-100 hover:bg-slate-200 text-[#0B1F4D] text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 transition cursor-pointer">التفاصيل</button>
-                        <button onclick="selectCourseDirectly('${c.title}')" class="bg-[#0B1F4D] hover:bg-[#132F6B] text-white text-xs font-bold px-3 py-2 rounded-xl shadow-md transition cursor-pointer">سجل الآن</button>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-
-        if (fullContainer) fullContainer.insertAdjacentHTML('beforeend', cardMarkup);
-        if (homeFeaturedContainer && index < 3) homeFeaturedContainer.insertAdjacentHTML('beforeend', cardMarkup);
-
-        if (adminCoursesList) {
-            adminCoursesList.insertAdjacentHTML('beforeend', `
-            <div class="flex justify-between items-center p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs">
-                <span class="font-bold text-[#0B1F4D] truncate w-1/3">${c.title}</span>
-                <div class="flex gap-1">
-                    <button onclick="openDetailsModal('${c.title}', event)" class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded shadow-sm transition">التفاصيل</button>
-                    <button onclick="openEditCourseModal('${c.id}', '${c.title}', '${c.trainer}', '${c.duration}', '${c.fee}', '${c.category}')" class="bg-emerald-600 text-white px-2 py-1 rounded shadow-sm">تعديل</button>
-                    <button onclick="deleteCourse('${c.id}')" class="bg-rose-500 text-white px-2 py-1 rounded shadow-sm">حذف</button>
-                </div>
-            </div>`);
-        }
-    });
-}
-
-function filterCourses(category) {
-    document.querySelectorAll('#courses-list-container > div').forEach(function(card) {
-        card.style.display = (category === 'all' || card.getAttribute('data-category') === category) ? 'flex' : 'none';
-    });
-}
-
-function updateRegistrationDropdown(courses) {
-    var selectBox = document.getElementById('reg-course');
-    if (!selectBox) return;
-    selectBox.innerHTML = '<option value="">-- انقر هنا لتحديد المسار التدريبي --</option>';
-    courses.forEach(function(c) { selectBox.insertAdjacentHTML('beforeend', `<option value="${c.title}">${c.title}</option>`); });
-}
-
-function selectCourseDirectly(courseTitle) {
-    document.getElementById('reg-course').value = courseTitle;
-    showSelectedCourseDetails();
-    navigateTo('register');
-}
-
-function showSelectedCourseDetails() {
-    var selectedTitle = document.getElementById('reg-course').value;
-    var course = null;
-    for (var i = 0; i < globalCourses.length; i++) {
-        if (globalCourses[i].title === selectedTitle) { course = globalCourses[i]; break; }
-    }
-    var display = document.getElementById('course-dynamic-info');
-    if (!display) return;
-
-    if (course) {
-        display.innerHTML = `
-            <div class="flex items-center gap-2"><i class="fas fa-info-circle text-blue-500"></i> تفاصيل المسار المختار:</div>
-            <ul class="list-disc list-inside font-bold mr-2 text-blue-900 mt-1 space-y-1">
-                <li>المدة: ${course.duration || 'مفتوحة'}</li>
-                <li>الرسوم: ${course.fee || 'مجاناً'}</li>
-                <li>موعد البدء: قريباً (سيتم الإبلاغ عبر الواتساب)</li>
-            </ul>`;
-        display.classList.remove('hidden');
+function updateAuthUI() {
+    const authArea = document.getElementById('auth-area');
+    if (!authArea) return;
+    if (currentUser) {
+        let roleName = currentUser.role;
+        if (roleName === 'admin') roleName = 'مدير';
+        else if (roleName === 'marketer') roleName = 'مسوق';
+        else if (roleName === 'trainer') roleName = 'مدرب';
+        authArea.innerHTML = `
+        <span class="text-white text-xs">${currentUser.name} (${roleName})</span>
+        <span onclick="navigateTo('dashboard')" class="text-[#D4A017] cursor-pointer font-bold mx-2">لوحة التحكم</span>
+        <span onclick="logout()" class="text-red-300 cursor-pointer text-xs">خروج</span>`;
     } else {
-        display.classList.add('hidden');
+        authArea.innerHTML = `<span onclick="navigateTo('login')" class="text-emerald-400 font-bold cursor-pointer">🔑 دخول</span>`;
     }
 }
 
-function renderNews(news) {
-    var container = document.getElementById('news-list-container');
-    var adminNewsList = document.getElementById('admin-news-list');
+function logout() {
+    currentUser = null;
+    sessionStorage.removeItem('user');
+    updateAuthUI();
+    navigateTo('home');
+}
 
-    if (container) {
-        container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
-        container.innerHTML = '';
+// ==========================================
+// بناء الصفحات
+// ==========================================
+function buildPages() {
+    const main = document.getElementById('main-content');
+    main.innerHTML = `
+    <section id="page-home" class="page-section active">
+      <div class="text-center py-16 bg-gradient-to-b from-[#0B1F4D] to-slate-50 text-white">
+        <h2 class="text-3xl font-black mb-6">مرحباً بكم في أكاديمية اقرأ</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto mt-6 px-4">
+          <div class="bg-white/10 backdrop-blur rounded-xl p-4"><span class="text-2xl font-black text-[#D4A017]" id="stat-courses">0</span><br><small class="text-slate-300">دورة</small></div>
+          <div class="bg-white/10 backdrop-blur rounded-xl p-4"><span class="text-2xl font-black text-[#D4A017]" id="stat-students">0</span><br><small class="text-slate-300">متدرب</small></div>
+          <div class="bg-white/10 backdrop-blur rounded-xl p-4"><span class="text-2xl font-black text-[#D4A017]" id="stat-certs">0</span><br><small class="text-slate-300">شهادة</small></div>
+        </div>
+      </div>
+      <div class="container mx-auto px-4 py-8">
+        <h3 class="text-xl font-bold text-[#0B1F4D] mb-4">الدورات المميزة</h3>
+        <div id="home-courses-list" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+      </div>
+    </section>
+
+    <section id="page-courses" class="page-section container mx-auto px-4 py-8">
+      <h2 class="text-2xl font-black text-[#0B1F4D] mb-6">الدورات التدريبية</h2>
+      <div id="courses-container" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+    </section>
+
+    <section id="page-news" class="page-section container mx-auto px-4 py-8">
+      <h2 class="text-2xl font-black text-[#0B1F4D] mb-6">الأخبار</h2>
+      <div id="news-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </section>
+
+    <section id="page-verification" class="page-section container mx-auto px-4 py-8">
+      <div class="max-w-lg mx-auto bg-white p-6 rounded-2xl shadow">
+        <h2 class="text-xl font-bold text-[#0B1F4D] mb-4">التحقق من الشهادة</h2>
+        <input type="text" id="certInput" placeholder="أدخل رقم الشهادة" class="w-full border p-2 rounded mb-2">
+        <button onclick="verifyCert()" class="bg-[#0B1F4D] text-white px-4 py-2 rounded font-bold">فحص</button>
+        <div id="certResult" class="mt-4 text-sm"></div>
+      </div>
+    </section>
+
+    <section id="page-register" class="page-section container mx-auto px-4 py-8">
+      <div class="max-w-lg mx-auto bg-white p-6 rounded-2xl shadow">
+        <h2 class="text-xl font-bold text-[#0B1F4D] mb-4">نموذج التسجيل</h2>
+        <form onsubmit="handleRegister(event)" id="reg-form">
+          <input type="text" id="reg-name-ar" placeholder="الاسم العربي" required class="w-full border p-2 rounded mb-2">
+          <input type="text" id="reg-whatsapp" placeholder="رقم الواتساب" required class="w-full border p-2 rounded mb-2">
+          <select id="reg-course" required class="w-full border p-2 rounded mb-4"><option value="">اختر الدورة</option></select>
+          <button type="submit" class="w-full bg-[#D4A017] text-[#0B1F4D] py-2 rounded font-bold">تسجيل</button>
+        </form>
+        <div id="reg-success" class="hidden mt-4 text-green-700 bg-green-50 p-3 rounded"></div>
+      </div>
+    </section>
+
+    <section id="page-login" class="page-section container mx-auto px-4 py-8">
+      <div class="max-w-sm mx-auto bg-white p-6 rounded-2xl shadow">
+        <h2 class="text-xl font-bold text-[#0B1F4D] mb-4 text-center">تسجيل الدخول</h2>
+        <form onsubmit="handleLogin(event)">
+          <input type="text" id="login-username" placeholder="اسم المستخدم" required class="w-full border p-2 rounded mb-2 text-left dir-ltr">
+          <input type="password" id="login-password" placeholder="كلمة المرور" required class="w-full border p-2 rounded mb-4 text-left dir-ltr">
+          <button type="submit" class="w-full bg-[#0B1F4D] text-white py-2 rounded font-bold">دخول</button>
+        </form>
+        <div id="login-error" class="hidden mt-4 text-red-600 text-center"></div>
+      </div>
+    </section>
+
+    <section id="page-dashboard" class="page-section container mx-auto px-4 py-8">
+      <div id="dash-content" class="text-center py-10">جاري تحميل لوحة التحكم...</div>
+    </section>
+
+    <div id="welcome-popup" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl text-right relative">
+        <button onclick="closePopup()" class="absolute top-3 left-3 text-gray-400 hover:text-red-500 text-xl cursor-pointer z-10">✕</button>
+        <div class="bg-gradient-to-b from-[#0B1F4D] to-[#132F6B] p-6 text-center">
+          <div class="text-5xl mb-3">🔥</div>
+          <h3 class="text-xl font-black text-white">خصم خاص للمسجلين اليوم!</h3>
+          <p class="text-[#D4A017] font-bold mt-2">في برامج يوليو - احجز مقعدك الآن</p>
+        </div>
+        <div class="p-5 text-center space-y-3 bg-white">
+          <button onclick="closePopup(); navigateTo('register')" class="w-full bg-[#D4A017] hover:bg-[#b88614] text-[#0B1F4D] font-black py-3 rounded-xl text-sm shadow-lg transition">سجل الآن واحصل على الخصم</button>
+          <button onclick="closePopup()" class="text-xs text-gray-400 hover:text-gray-600">ربما لاحقاً</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ==========================================
+// دوال الصفحات العامة
+// ==========================================
+async function loadHomeData() {
+    showPopupAfterDelay();
+    const stats = await callGoogleAPI('getStats');
+    if (stats && !stats.error) {
+        document.getElementById('stat-courses').innerText = stats.courses || 0;
+        document.getElementById('stat-students').innerText = stats.students || 0;
+        document.getElementById('stat-certs').innerText = stats.certs || 0;
     }
-    if (adminNewsList) adminNewsList.innerHTML = '';
-
-    news.forEach(function(n) {
-        let shareTxt = encodeURIComponent(n.title + " - شاهد التفاصيل عبر موقع أكاديمية اقرأ");
-        let imgHtml = n.image ? `<img src="${n.image}" class="w-full h-40 object-cover rounded-xl mb-3" loading="lazy">` : '';
-
-        if (container) {
-            container.insertAdjacentHTML('beforeend', `
-            <div class="bg-white p-5 rounded-2xl shadow border border-slate-100 text-right hover:shadow-lg transition cursor-pointer flex flex-col justify-between" onclick="window.open('https://whatsapp.com/channel/0029VbCDK6M4IBhBR3jvVY0Y', '_blank')">
-                <div>
-                    ${imgHtml}
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full"><i class="fas fa-calendar-alt"></i> ${n.date}</span>
-                        <a href="https://wa.me/?text=${shareTxt}" target="_blank" onclick="event.stopPropagation()" class="text-emerald-500 hover:text-emerald-700 text-lg transition"><i class="fab fa-whatsapp"></i></a>
-                    </div>
-                    <h3 class="text-md font-bold text-[#0B1F4D] mb-2">${n.title}</h3>
-                    <p class="text-slate-600 text-xs leading-relaxed line-clamp-2">${n.details}</p>
-                </div>
-            </div>`);
-        }
-
-        if (adminNewsList) {
-            adminNewsList.insertAdjacentHTML('beforeend', `
-            <div class="flex justify-between items-center p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs hover:bg-slate-100 transition">
-                <span class="font-bold text-[#0B1F4D] truncate w-2/3">${n.title}</span>
-                <button onclick="deleteNews('${n.id}')" class="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-lg shadow-sm transition"><i class="fas fa-trash-alt"></i></button>
-            </div>`);
-        }
-    });
+    const courses = await callGoogleAPI('fetchCoursesFromSheet');
+    const homeCourses = document.getElementById('home-courses-list');
+    if (homeCourses && Array.isArray(courses)) {
+        homeCourses.innerHTML = courses.slice(0, 3).map(c => `
+        <div class="bg-white p-4 rounded-2xl shadow border cursor-pointer hover:shadow-lg transition" onclick="openCourseDetails('${encodeURIComponent(c.title)}')">
+          <img src="${c.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600'}" class="h-40 w-full object-cover rounded-xl mb-3">
+          <h3 class="font-bold text-[#0B1F4D]">${c.title}</h3>
+          <p class="text-xs text-gray-500"><i class="fas fa-chalkboard-teacher text-[#D4A017] ml-1"></i> ${c.trainer}</p>
+          <p class="text-xs text-gray-400 mt-1"><i class="fas fa-clock ml-1"></i> ${c.duration || '36 ساعة'}</p>
+          <div class="flex justify-between items-center mt-3 pt-3 border-t">
+            <span class="text-amber-600 font-bold">${c.fee}</span>
+            <button onclick="event.stopPropagation(); navigateTo('register')" class="bg-[#D4A017] text-[#0B1F4D] px-3 py-1 rounded-lg text-xs font-bold">سجل الآن</button>
+          </div>
+        </div>`).join('');
+    }
 }
 
-function searchNews() {
-    var term = document.getElementById('news-search').value.toLowerCase();
-    var cards = document.querySelectorAll('#news-list-container > div');
-    cards.forEach(function(card) {
-        var txt = card.innerText.toLowerCase();
-        card.style.display = txt.includes(term) ? 'flex' : 'none';
-    });
+async function loadCoursesPage() {
+    const courses = await callGoogleAPI('fetchCoursesFromSheet');
+    const container = document.getElementById('courses-container');
+    if (container && Array.isArray(courses)) {
+        container.innerHTML = courses.map(c => `
+        <div class="bg-white p-4 rounded-2xl shadow border cursor-pointer hover:shadow-lg transition" onclick="openCourseDetails('${encodeURIComponent(c.title)}')">
+          <img src="${c.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600'}" class="h-40 w-full object-cover rounded-xl mb-3">
+          <h3 class="font-bold text-[#0B1F4D]">${c.title}</h3>
+          <p class="text-xs text-gray-500"><i class="fas fa-chalkboard-teacher text-[#D4A017] ml-1"></i> ${c.trainer}</p>
+          <p class="text-xs text-gray-400 mt-1"><i class="fas fa-clock ml-1"></i> ${c.duration || '36 ساعة'}</p>
+          <div class="flex justify-between items-center mt-3 pt-3 border-t">
+            <span class="text-amber-600 font-bold">${c.fee}</span>
+            <div class="flex gap-2">
+              <a href="https://wa.me/967777644293?text=${encodeURIComponent('مرحباً، أريد الاستفسار عن دورة: ' + c.title)}" target="_blank" onclick="event.stopPropagation()" class="bg-green-500 text-white px-3 py-1 rounded-lg text-xs font-bold"><i class="fab fa-whatsapp"></i> واتساب</a>
+              <button onclick="event.stopPropagation(); navigateTo('register')" class="bg-[#D4A017] text-[#0B1F4D] px-3 py-1 rounded-lg text-xs font-bold">سجل الآن</button>
+            </div>
+          </div>
+        </div>`).join('');
+    }
 }
 
-// ==========================================
-// التسجيل والتواصل وفحص الشهادات
-// ==========================================
-async function handleNewRegistration(e) {
+async function loadNewsPage() {
+    const news = await callGoogleAPI('fetchNewsFromSheet');
+    const container = document.getElementById('news-container');
+    if (container && Array.isArray(news)) {
+        container.innerHTML = news.map(n => `
+        <div class="bg-white p-4 rounded-2xl shadow border">
+          <span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded-full"><i class="fas fa-calendar-alt"></i> ${n.date}</span>
+          <h3 class="font-bold text-[#0B1F4D] mt-2">${n.title}</h3>
+          <p class="text-sm text-gray-600 mt-2">${n.details}</p>
+        </div>`).join('');
+    }
+}
+
+async function loadRegistrationForm() {
+    const courses = await callGoogleAPI('fetchCoursesFromSheet');
+    const select = document.getElementById('reg-course');
+    if (select && Array.isArray(courses)) {
+        select.innerHTML = '<option value="">اختر الدورة</option>';
+        courses.forEach(c => { select.innerHTML += `<option value="${c.title}">${c.title}</option>`; });
+    }
+}
+
+async function handleRegister(e) {
     e.preventDefault();
-    var submitBtn = document.getElementById('submit-btn');
-    if (!submitBtn) return;
-    var originalText = submitBtn.innerText;
-    submitBtn.disabled = true;
-    submitBtn.innerText = 'جاري التسجيل والربط...';
-    submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerText = 'جاري التسجيل...';
 
-    var studentData = {
-        nameAr: document.getElementById('reg-name-ar') ? document.getElementById('reg-name-ar').value : '',
-        nameEn: document.getElementById('reg-name-en') ? document.getElementById('reg-name-en').value : '',
-        whatsapp: document.getElementById('reg-whatsapp') ? document.getElementById('reg-whatsapp').value : '',
-        nationality: document.getElementById('reg-nationality') ? document.getElementById('reg-nationality').value : '',
-        residence: document.getElementById('reg-residence') ? document.getElementById('reg-residence').value : 'أصلي',
-        governorate: document.getElementById('reg-governorate') ? document.getElementById('reg-governorate').value : '',
-        course: document.getElementById('reg-course') ? document.getElementById('reg-course').value : '',
-        gender: document.getElementById('reg-gender') ? document.getElementById('reg-gender').value : '',
-        degree: document.getElementById('reg-degree') ? document.getElementById('reg-degree').value : '',
-        platform: document.getElementById('reg-platform') ? document.getElementById('reg-platform').value : '',
-        marketerCode: localStorage.getItem('marketerRef') || ''
+    const studentData = {
+        nameAr: document.getElementById('reg-name-ar').value,
+        whatsapp: document.getElementById('reg-whatsapp').value,
+        course: document.getElementById('reg-course').value,
+        marketerCode: localStorage.getItem('ref') || ''
     };
 
     const res = await callGoogleAPI('registerTraineeFinal', [studentData]);
 
     if (res && res.success) {
-        var formChildren = document.getElementById('registration-form').children;
-        for (var i = 0; i < formChildren.length; i++) {
-            if (formChildren[i].id !== 'successMessage') { formChildren[i].style.display = 'none'; }
-        }
-
-        var successDiv = document.getElementById('successMessage');
-        if (successDiv) {
-            successDiv.classList.remove('hidden');
-            successDiv.style.display = 'block';
-            if (document.getElementById('displayOrderID')) {
-                document.getElementById('displayOrderID').innerText = res.orderID;
-            }
-        }
-        setTimeout(function() { window.open("https://whatsapp.com/channel/0029VbCDK6M4IBhBR3jvVY0Y", "_blank"); }, 3000);
-    } else {
-        alert("❌ خطأ أثناء التسجيل: " + (res ? res.error : "غير معروف"));
-        submitBtn.disabled = false;
-        submitBtn.innerText = originalText;
-        submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
-    }
-}
-
-function handleContactSubmit(e) {
-    e.preventDefault();
-    var btn = document.getElementById('contact-submit-btn');
-    var msgObj = {
-        name: document.getElementById('contact-name').value,
-        type: document.getElementById('contact-type').value,
-        method: document.getElementById('contact-method').value,
-        text: document.getElementById('contact-msg').value
-    };
-
-    if (msgObj.method === 'whatsapp') {
-        var waText = encodeURIComponent("مرحباً إدارة أكاديمية اقرأ،\nالاسم: " + msgObj.name + "\nالنوع: " + msgObj.type + "\nالرسالة: " + msgObj.text);
-        window.open('https://wa.me/967777644293?text=' + waText, '_blank');
-    } else if (msgObj.method === 'email') {
-        var mailText = encodeURIComponent("الاسم: " + msgObj.name + "\nالرسالة: " + msgObj.text);
-        window.open('mailto:aqraakadymyt51@gmail.com?subject=' + encodeURIComponent(msgObj.type) + '&body=' + mailText, '_blank');
-    }
-
-    btn.innerText = "تم التوجيه بنجاح!";
-    setTimeout(function() { btn.innerText = "إرسال الرسالة الحين";
-        e.target.reset(); }, 3000);
-}
-
-async function runCertificateVerification() {
-    var certId = document.getElementById('cert-search-input').value.trim();
-    var resBox = document.getElementById('cert-result-box');
-    if (!certId) { alert("لطفاً، أدخل رقم الشهادة الموحد."); return; }
-    resBox.classList.remove('hidden');
-    resBox.className = "mt-8 p-5 text-center text-xs font-bold border rounded-2xl bg-slate-50";
-    resBox.innerHTML = "جاري فحص القيود والملفات الفورية بمخازن الأكاديمية...";
-
-    const r = await callGoogleAPI('verifyCertificate', [certId]);
-    renderVerificationResult(r);
-}
-
-function renderVerificationResult(result) {
-    var resBox = document.getElementById('cert-result-box');
-    resBox.classList.remove('hidden');
-    if (result && result.found) {
-        var qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(window.location.href + "?cert=" + result.id);
-        resBox.className = "mt-8 p-6 rounded-2xl border bg-emerald-50/70 border-emerald-200 text-right space-y-3 text-xs text-slate-700 shadow-sm";
-        resBox.innerHTML = `
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="space-y-2 flex-1">
-                <div class="text-emerald-700 font-black text-sm mb-2 flex items-center gap-1">الشهادة معتمدة وصحيحة ✅</div>
-                <p><strong class="text-[#0B1F4D]">اسم المتدرب:</strong> ${result.studentAr}</p>
-                <p><strong class="text-[#0B1F4D]">البرنامج:</strong> ${result.course}</p>
-                <p><strong class="text-[#0B1F4D]">تاريخ الإصدار:</strong> ${result.date}</p>
-                <div class="pt-2"><a href="${result.pdfUrl}" target="_blank" class="inline-block bg-[#0B1F4D] hover:bg-[#132F6B] text-white px-5 py-2 rounded-xl font-bold shadow">تحميل الشهادة pdf</a></div>
-            </div>
-            <div class="bg-white p-2 rounded-xl shadow border border-emerald-100"><img src="${qrUrl}" alt="QR" class="w-24 h-24 mx-auto"></div>
+        document.getElementById('reg-form').style.display = 'none';
+        const successDiv = document.getElementById('reg-success');
+        successDiv.classList.remove('hidden');
+        successDiv.innerHTML = `
+        <div class="text-center">
+          <div class="text-5xl mb-3">✅</div>
+          <div class="font-black text-xl text-emerald-700 mb-2">تم التسجيل بنجاح!</div>
+          <div class="text-lg mb-1">رقم الطلب: <span class="font-black text-[#0B1F4D] bg-white px-3 py-1 rounded-lg shadow-sm">${res.orderID}</span></div>
+          <p class="text-xs text-gray-600 mt-3">يرجى الانضمام لقناة الواتساب الرسمية:</p>
+          <div class="flex gap-3 justify-center mt-4 flex-wrap">
+            <a href="https://whatsapp.com/channel/0029VbCDK6M4IBhBR3jvVY0Y" target="_blank" class="bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-xl font-bold shadow-md transition flex items-center gap-2"><i class="fab fa-whatsapp text-xl"></i> انضم للقناة</a>
+            <a href="https://wa.me/967777644293" target="_blank" class="bg-[#25D366] hover:bg-[#1ebd5a] text-white px-5 py-3 rounded-xl font-bold shadow-md transition flex items-center gap-2"><i class="fab fa-whatsapp text-xl"></i> تواصل مباشر</a>
+          </div>
         </div>`;
     } else {
-        resBox.className = "mt-8 p-6 rounded-2xl border bg-rose-50 border-rose-200 text-right text-xs shadow-sm text-slate-700 leading-relaxed";
-        resBox.innerHTML = `<div class="text-rose-700 font-extrabold text-sm mb-2">✕ حظر التحقق الإلكتروني</div><p class="font-semibold text-slate-600">عذراً، لم نجد قيد رسمي يطابق هذا الرقم.</p>`;
+        alert('❌ خطأ: ' + (res ? res.error : 'فشل التسجيل'));
+        btn.disabled = false;
+        btn.innerText = 'تسجيل';
     }
 }
 
 // ==========================================
-// نظام تسجيل الدخول ولوحة التحكم
+// صفحة تفاصيل الدورة
 // ==========================================
-function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+async function openCourseDetails(courseTitle) {
+    const title = decodeURIComponent(courseTitle);
+    const courses = await callGoogleAPI('fetchCoursesFromSheet');
+    const course = Array.isArray(courses) ? courses.find(c => c.title === title) : null;
+    if (!course) { alert('لم يتم العثور على تفاصيل هذه الدورة'); return; }
 
-function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+    let detailsHTML = document.getElementById('page-course-details');
+    if (!detailsHTML) {
+        const div = document.createElement('section');
+        div.id = 'page-course-details';
+        div.className = 'page-section';
+        document.getElementById('main-content').appendChild(div);
+        detailsHTML = div;
+    }
 
-async function handleLoginSubmit(e) {
+    detailsHTML.innerHTML = `
+    <div class="container mx-auto px-4 py-8">
+      <button onclick="navigateTo('courses')" class="text-[#0B1F4D] font-bold mb-4 inline-block hover:text-[#D4A017] transition"><i class="fas fa-arrow-right ml-1"></i> العودة للدورات</button>
+      <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+        <img src="${course.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200'}" class="w-full h-64 object-cover">
+        <div class="p-8">
+          <span class="bg-slate-100 text-[#0B1F4D] text-xs font-bold px-3 py-1 rounded-full">${course.category || 'تدريب'}</span>
+          <h2 class="text-3xl font-black text-[#0B1F4D] mt-4">${course.title}</h2>
+          <p class="text-gray-600 mt-4 leading-relaxed">هذه الدورة من أفضل الدورات التدريبية في مجالها، يقدمها نخبة من المدربين المعتمدين.</p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div class="bg-slate-50 p-4 rounded-xl text-center"><i class="fas fa-clock text-[#D4A017] text-xl"></i><p class="font-bold mt-1">المدة</p><p class="text-sm text-gray-600">${course.duration || 'غير محدد'}</p></div>
+            <div class="bg-slate-50 p-4 rounded-xl text-center"><i class="fas fa-chalkboard-teacher text-[#D4A017] text-xl"></i><p class="font-bold mt-1">المدرب</p><p class="text-sm text-gray-600">${course.trainer || 'نخبة من المدربين'}</p></div>
+            <div class="bg-slate-50 p-4 rounded-xl text-center"><i class="fas fa-tag text-[#D4A017] text-xl"></i><p class="font-bold mt-1">الرسوم</p><p class="text-sm text-gray-600 font-bold">${course.fee || 'مجاناً'}</p></div>
+          </div>
+          <div class="flex gap-3 mt-8 flex-wrap">
+            <a href="https://wa.me/967777644293?text=${encodeURIComponent('مرحباً، أريد الاستفسار عن دورة: ' + course.title)}" target="_blank" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-md transition flex items-center gap-2 flex-1 justify-center"><i class="fab fa-whatsapp text-xl"></i> استفسر عبر الواتساب</a>
+            <button onclick="navigateTo('register')" class="bg-[#D4A017] hover:bg-[#b88614] text-[#0B1F4D] px-6 py-3 rounded-xl font-bold shadow-md transition flex-1">سجل الآن</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    detailsHTML.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ==========================================
+// تسجيل الدخول
+// ==========================================
+async function handleLogin(e) {
     e.preventDefault();
-    var btn = document.getElementById('loginSubmitBtn');
-    var user = document.getElementById('loginUser').value;
-    var pass = document.getElementById('loginPass').value;
-
-    btn.innerText = "جاري التحقق...";
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+    const errorDiv = document.getElementById('login-error');
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.innerText = 'جاري التحقق...';
     btn.disabled = true;
+    errorDiv.classList.add('hidden');
 
-    const res = await callGoogleAPI('authenticateUser', [user, pass]);
+    const res = await callGoogleAPI('authenticateUser', [username, password]);
 
     if (res && res.success) {
-        sessionStorage.setItem('loggedIn', 'true');
-        sessionStorage.setItem('role', res.role);
-        sessionStorage.setItem('code', res.marketerCode);
-        sessionStorage.setItem('name', res.name);
-
-        document.getElementById('main-content').style.display = 'none';
-        document.getElementById('admin-content').style.display = 'block';
-
-        document.getElementById('userNameDisplay').innerText = res.name;
-        var roleAr = res.role === 'admin' ? "مدير النظام" : (res.role === 'marketer' ? "مسوق معتمد" : "مدرب معتمد");
-        document.getElementById('userRoleDisplay').innerText = roleAr;
-
-        if (res.role === 'marketer' && res.marketerCode) {
-            document.getElementById('marketer-link-box').classList.remove('hidden');
-            var siteUrl = window.location.href.split('?')[0];
-            document.getElementById('marketer-link-input').value = siteUrl + "?ref=" + res.marketerCode;
-        } else {
-            document.getElementById('marketer-link-box').classList.add('hidden');
-        }
-
-        if (res.role !== 'admin') {
-            document.getElementById('tab-btn-content').style.display = 'none';
-            document.getElementById('tab-btn-settings').style.display = 'none';
-            document.getElementById('tab-title-users').innerText = "طلابي المسجلين";
-            switchAdminTab('tab-stats', document.getElementById('tab-btn-stats'));
-        } else {
-            document.getElementById('tab-btn-content').style.display = 'block';
-            document.getElementById('tab-btn-settings').style.display = 'block';
-            document.getElementById('tab-title-users').innerText = "إدارة المتدربين";
-        }
-
-        loadDashboardData(res.role, res.marketerCode, res.name);
-        loadStatsData(res.role, res.marketerCode, res.name);
-        closeLoginModal();
+        currentUser = { role: res.role, code: res.marketerCode || '', name: res.name };
+        sessionStorage.setItem('user', JSON.stringify(currentUser));
+        updateAuthUI();
+        navigateTo('dashboard');
     } else {
-        alert(res ? res.message : "خطأ في الاتصال بالخادم");
+        errorDiv.classList.remove('hidden');
+        errorDiv.innerText = (res && res.message) ? res.message : 'اسم المستخدم أو كلمة المرور غير صحيحة';
     }
-    btn.innerText = "دخول";
+    btn.innerText = 'دخول';
     btn.disabled = false;
 }
 
-function logout() {
-    sessionStorage.clear();
-    document.getElementById('admin-content').style.display = 'none';
-    document.getElementById('main-content').style.display = 'block';
-    navigateTo('home');
-}
-
-function switchAdminTab(tabId, btnElement) {
-    var contents = document.getElementsByClassName('admin-tab-content');
-    for (var i = 0; i < contents.length; i++) {
-        contents[i].classList.add('hidden');
-        contents[i].classList.remove('block');
-    }
-    var btns = document.getElementsByClassName('admin-tab-btn');
-    for (var j = 0; j < btns.length; j++) {
-        btns[j].classList.remove('bg-[#0B1F4D]', 'text-white', 'shadow');
-        btns[j].classList.add('bg-transparent', 'text-slate-600');
-    }
-    document.getElementById(tabId).classList.remove('hidden');
-    document.getElementById(tabId).classList.add('block');
-    btnElement.classList.remove('bg-transparent', 'text-slate-600');
-    btnElement.classList.add('bg-[#0B1F4D]', 'text-white', 'shadow');
-}
-
-function copyMarketerLink() {
-    var copyText = document.getElementById("marketer-link-input");
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    document.execCommand("copy");
-
-    var btn = document.getElementById("btn-copy-link");
-    btn.innerHTML = '<i class="fas fa-check"></i> تم النسخ!';
-    btn.classList.replace('bg-emerald-600', 'bg-emerald-800');
-    setTimeout(function() {
-        btn.innerHTML = '<i class="fas fa-copy ml-1"></i> نسخ الرابط';
-        btn.classList.replace('bg-emerald-800', 'bg-emerald-600');
-    }, 3000);
-}
-
 // ==========================================
-// دوال الإدارة والعمليات
+// لوحة التحكم
 // ==========================================
-async function loadDashboardData(role, code, name) {
-    const data = await callGoogleAPI('getDashboardData', [role, code, name]);
-    var tbody = document.getElementById('dataTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
+async function loadDashboard() {
+    if (!currentUser) { navigateTo('login'); return; }
+    const dashContent = document.getElementById('dash-content');
+    dashContent.innerHTML = '<div class="text-center py-10">جاري تحميل لوحة التحكم...</div>';
 
-    if (data && data.length > 0 && data[0].error) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500 font-bold">خطأ: ${data[0].error}</td></tr>`;
-        return;
-    }
-    if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500 font-bold">لا يوجد متدربين حالياً لعرضهم.</td></tr>`;
+    const res = await callGoogleAPI('getDashboardForAPI', [currentUser.role, currentUser.code, currentUser.name]);
+    if (!res || !res.success) {
+        dashContent.innerHTML = `<div class="text-red-600 text-center py-10">❌ خطأ: ${res ? res.error : 'فشل تحميل البيانات'}</div>`;
         return;
     }
 
-    var countElement = document.getElementById('totalRecordsCount');
-    if (countElement) countElement.innerText = data.length;
+    const { studentsCount, certsCount, coursesCount, marketersCount, students } = res;
+    const isAdmin = currentUser.role === 'admin' || currentUser.role === 'مدير';
+    const isMarketer = currentUser.role === 'marketer' || currentUser.role === 'مسوق';
 
-    let safeRole = role ? role.toString().toLowerCase().trim() : '';
-    let isAdmin = (safeRole === 'admin' || safeRole === 'مدير');
+    let marketerStats = null;
+    if (isMarketer && currentUser.code) {
+        marketerStats = await callGoogleAPI('getMarketerDetailedStats', [currentUser.code]);
+    }
 
-    data.forEach(function(row) {
-        let currentStatus = row.status ? row.status.toString().trim() : 'جديد';
-        let statusBadge = '';
-        let actionButtons = '';
+    dashContent.innerHTML = `
+    <h2 class="text-2xl font-black text-[#0B1F4D] mb-6">لوحة التحكم - ${currentUser.name}</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      ${isMarketer ? `
+      <div class="bg-white p-4 rounded-2xl shadow border"><div class="text-xs text-slate-500 font-bold">طلابي الكلي</div><div class="text-2xl font-black text-[#0B1F4D]">${marketerStats ? marketerStats.totalStudents : '...'}</div></div>
+      <div class="bg-white p-4 rounded-2xl shadow border"><div class="text-xs text-slate-500 font-bold">المسددين</div><div class="text-2xl font-black text-emerald-600">${marketerStats ? marketerStats.paidStudents : '...'}</div></div>
+      <div class="bg-white p-4 rounded-2xl shadow border col-span-2">
+        <div class="text-xs text-slate-500 font-bold mb-2">عمولتي: <span class="text-[#D4A017]">${marketerStats ? marketerStats.currentTier : '...'}</span></div>
+        <div class="w-full bg-slate-200 rounded-full h-4 overflow-hidden"><div class="bg-gradient-to-l from-[#D4A017] to-emerald-500 h-4 rounded-full transition-all" style="width: ${marketerStats ? marketerStats.progressPercent : 0}%"></div></div>
+        <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>${marketerStats ? marketerStats.totalStudents : 0} طالب</span><span>${marketerStats && marketerStats.remainingForNext > 0 ? 'متبقي ' + marketerStats.remainingForNext + ' للفئة التالية' : '🎉 أعلى فئة!'}</span></div>
+      </div>` : `
+      <div class="bg-white p-4 rounded-2xl shadow border"><div class="text-xs text-slate-500 font-bold">المتدربين</div><div class="text-2xl font-black text-[#0B1F4D]">${studentsCount}</div></div>
+      <div class="bg-white p-4 rounded-2xl shadow border"><div class="text-xs text-slate-500 font-bold">الشهادات</div><div class="text-2xl font-black text-emerald-600">${certsCount}</div></div>
+      <div class="bg-white p-4 rounded-2xl shadow border"><div class="text-xs text-slate-500 font-bold">الدورات</div><div class="text-2xl font-black text-[#0B1F4D]">${coursesCount}</div></div>
+      ${isAdmin ? `<div class="bg-white p-4 rounded-2xl shadow border"><div class="text-xs text-slate-500 font-bold">مسوقين</div><div class="text-2xl font-black text-[#0B1F4D]">${marketersCount}</div></div>` : ''}`}
+    </div>
+    <div class="bg-white p-4 rounded-2xl shadow border">
+      <h3 class="font-bold mb-4 text-[#0B1F4D]">📋 سجل المتدربين</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
+          <thead><tr class="bg-slate-100"><th class="p-3 border font-bold">رقم الطلب</th><th class="p-3 border font-bold">الاسم</th><th class="p-3 border font-bold">الدورة</th><th class="p-3 border font-bold">الحالة</th>${isAdmin ? '<th class="p-3 border font-bold">إجراء</th>' : ''}</tr></thead>
+          <tbody>
+            ${students.map(s => `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-2 border">${s.orderID}</td>
+              <td class="p-2 border">${s.name}</td>
+              <td class="p-2 border text-blue-900 font-semibold">${s.course}</td>
+              <td class="p-2 border"><span class="px-2 py-1 rounded text-xs font-bold ${s.status === 'تم تسديد الشهادة' ? 'bg-yellow-50 text-yellow-700' : s.status === 'مقبول' ? 'bg-green-50 text-green-700' : s.status === 'مرفوض' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}">${s.status || 'جديد'}</span></td>
+              ${isAdmin ? `<td class="p-2 border"><select onchange="updateStatus('${s.orderID}', this.value)" class="border rounded px-2 py-1 text-xs"><option value="">تغيير</option><option value="مقبول">مقبول</option><option value="تم تسديد الشهادة">تم التسديد</option><option value="مرفوض">مرفوض</option></select></td>` : ''}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
 
-        if (currentStatus === 'جديد' || currentStatus === '') {
-            statusBadge = `<span class="text-blue-600 bg-blue-50 px-2 py-1 rounded">جديد</span>`;
-            actionButtons = `
-                <button onclick="updateStudentState('${row.orderID}', 'مقبول')" class="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 m-1">قبول</button>
-                <button onclick="updateStudentState('${row.orderID}', 'مرفوض')" class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 m-1">رفض</button>`;
-        } else if (currentStatus === 'مقبول') {
-            statusBadge = `<span class="text-green-600 bg-green-50 px-2 py-1 rounded">مقبول</span>`;
-            actionButtons = `
-                <button onclick="updateStudentState('${row.orderID}', 'تم تسديد الشهادة')" class="bg-[#D4A017] text-white px-2 py-1 rounded text-xs hover:bg-yellow-600 m-1 shadow-sm">سدد الشهادة</button>
-                <button onclick="updateStudentState('${row.orderID}', 'لم يتم تسديد الشهادة')" class="bg-gray-500 text-white px-2 py-1 rounded text-xs hover:bg-gray-600 m-1 shadow-sm">لم يسدد</button>`;
-        } else if (currentStatus === 'تم تسديد الشهادة') {
-            statusBadge = `<span class="text-[#D4A017] font-bold bg-yellow-50 px-2 py-1 rounded">تم تسديد الشهادة</span>`;
-            actionButtons = `<span class="text-xs text-gray-400 font-bold">مكتمل ✔️</span>`;
-        } else if (currentStatus === 'لم يتم تسديد الشهادة') {
-            statusBadge = `<span class="text-gray-600 bg-gray-100 px-2 py-1 rounded">لم يسدد</span>`;
-            actionButtons = `
-                <button onclick="updateStudentState('${row.orderID}', 'تم تسديد الشهادة')" class="bg-[#D4A017] text-white px-2 py-1 rounded text-xs hover:bg-yellow-600 m-1 shadow-sm">تأكيد التسديد</button>`;
-        } else if (currentStatus === 'مرفوض') {
-            statusBadge = `<span class="text-red-600 bg-red-50 px-2 py-1 rounded">مرفوض</span>`;
-            actionButtons = `<span class="text-xs text-gray-400">-</span>`;
-        } else {
-            statusBadge = `<span class="text-gray-600">${currentStatus}</span>`;
-            actionButtons = `<span class="text-xs text-gray-400">-</span>`;
-        }
+async function updateStatus(orderId, newStatus) {
+    if (!newStatus) return;
+    if (!confirm(`تأكيد تغيير الحالة إلى: ${newStatus}؟`)) return;
+    const res = await callGoogleAPI('updateStudentStatus', [orderId, newStatus]);
+    if (res && res.success) { alert('✅ تم التحديث بنجاح');
+        loadDashboard(); } else { alert('❌ خطأ: ' + (res ? res.error : 'غير معروف')); }
+}
 
-        let adminCell = isAdmin ? `<td class="p-3 border border-slate-100 text-center">${actionButtons}</td>` : `<td class="hidden"></td>`;
+// ==========================================
+// التحقق من الشهادات
+// ==========================================
+function resetVerification() {
+    const input = document.getElementById('certInput');
+    const result = document.getElementById('certResult');
+    if (input) input.value = '';
+    if (result) result.innerHTML = '';
+}
 
-        tbody.innerHTML += `
-        <tr class="hover:bg-slate-50 transition text-center">
-            <td class="p-3 border border-slate-100 font-bold">${row.orderID}</td>
-            <td class="p-3 border border-slate-100">${row.name}</td>
-            <td class="p-3 border border-slate-100 text-blue-900 font-semibold">${row.course}</td>
-            <td class="p-3 border border-slate-100 font-black">${statusBadge}</td>
-            ${adminCell}
-        </tr>`;
-    });
-
-    var actionCol = document.getElementById('actionColumn');
-    if (actionCol) {
-        if (isAdmin) actionCol.classList.remove('hidden');
-        else actionCol.classList.add('hidden');
+async function verifyCert() {
+    const certId = document.getElementById('certInput').value.trim();
+    if (!certId) return;
+    const resultDiv = document.getElementById('certResult');
+    resultDiv.innerHTML = 'جاري الفحص...';
+    const res = await callGoogleAPI('verifyCertificate', [certId]);
+    if (res && res.found) {
+        resultDiv.innerHTML = `<div class="text-green-700 font-bold text-lg">✅ الشهادة صحيحة ومعتمدة</div><div class="mt-2"><strong>الاسم:</strong> ${res.studentAr}</div><div><strong>الدورة:</strong> ${res.course}</div><div><strong>التاريخ:</strong> ${res.date}</div>`;
+    } else {
+        resultDiv.innerHTML = '<div class="text-red-600 font-bold">❌ لم يتم العثور على هذه الشهادة</div>';
     }
 }
 
 // ==========================================
-// دالة عرض الإحصائيات (نسخة واحدة فقط - صحيحة)
+// الإعلان المنبثق
 // ==========================================
-async function loadStatsData(role, code, name) {
+let popupTimer;
+function showPopupAfterDelay() {
+    clearTimeout(popupTimer);
+    popupTimer = setTimeout(() => {
+        const popup = document.getElementById('welcome-popup');
+        if (popup) popup.classList.remove('hidden');
+    }, 5000);
+}
+function closePopup() {
+    const popup = document.getElementById('welcome-popup');
+    if (popup) popup.classList.add('hidden');
+    clearTimeout(popupTimer);
+}
+
+// ==========================================
+// بدء التطبيق
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    buildHeader();
+    buildPages();
     try {
-        const boxes = document.querySelectorAll('.text-2xl');
-        const res = await callGoogleAPI('getAdminStats', [role, code, name]);
-
-        if (res && res.success) {
-            if (boxes.length >= 4) {
-                boxes[0].innerText = res.studentsCount || 0;
-                boxes[1].innerText = res.certsCount || 0;
-                if (res.userType === 'admin') {
-                    boxes[2].innerHTML = '<select class="w-full text-center bg-transparent border-0 focus:ring-0 cursor-pointer" style="font-size:16px; outline:none; appearance:none;"><option value="">العدد: ' + res.marketersCount + ' 🔽</option>' + res.marketersOptions + '</select>';
-                    boxes[3].innerHTML = '<select class="w-full text-center bg-transparent border-0 focus:ring-0 cursor-pointer text-green-700 font-bold" style="font-size:16px; outline:none; appearance:none;"><option value="">الإجمالي: ' + res.totalRevenueStr + ' 🔽</option>' + res.revenueOptions + '</select>';
-                } else {
-                    boxes[2].innerText = "-";
-                    boxes[3].innerText = res.personalRevenue || '0$';
-                }
-            }
-        } else {
-            console.error("خطأ في جلب البيانات:", res?.error || 'خطأ غير معروف');
-        }
-    } catch (error) {
-        console.error("فشل الاتصال بالسيرفر:", error);
-    }
-}
-
-async function updateStudentState(orderId, newStatus) {
-    if (!confirm("هل تريد تغيير حالة الطلب إلى: " + newStatus + "؟")) return;
-    const res = await callGoogleAPI('changeTraineeStatus', [orderId, newStatus]);
-    if (res && res.success) {
-        alert("✅ تم تغيير الحالة بنجاح إلى: " + res.newStatus);
-        let currentRole = sessionStorage.getItem('role');
-        let currentCode = sessionStorage.getItem('code');
-        let currentName = sessionStorage.getItem('name');
-        loadDashboardData(currentRole, currentCode, currentName);
-        loadStatsData(currentRole, currentCode, currentName);
-    } else {
-        alert("❌ خطأ: " + (res ? res.error : "غير معروف"));
-    }
-}
-
-async function handleSaveSettings() {
-    var btn = document.getElementById('btn-save-settings');
-    var originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
-    btn.disabled = true;
-
-    var settingsData = {
-        name: document.getElementById('set-name').value,
-        whatsapp: document.getElementById('set-whatsapp').value,
-        email: document.getElementById('set-email').value,
-        channel: document.getElementById('set-channel').value,
-        trainer_pct: document.getElementById('set-trainer-pct').value,
-        marketer_pct: document.getElementById('set-marketer-pct').value
-    };
-
-    const res = await callGoogleAPI('saveSettingsFromAdmin', [settingsData]);
-    if (res && res.success) { alert("تم حفظ الإعدادات بنجاح!"); } else { alert("خطأ في الحفظ: " + (res ? res.error : "غير معروف")); }
-
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-}
-
-function handleAddCourse(e) {
-    e.preventDefault();
-    var btn = document.getElementById('btn-submit-course');
-    var originalText = btn.innerText;
-    btn.innerText = "جاري الرفع...";
-    btn.disabled = true;
-
-    var fileInput = document.getElementById('adm-course-img');
-    var sendData = async function(base64Img) {
-        var data = {
-            title: document.getElementById('adm-course-title').value,
-            trainer: document.getElementById('adm-course-trainer').value,
-            fee: document.getElementById('adm-course-fee').value,
-            category: document.getElementById('adm-course-cat').value,
-            duration: document.getElementById('adm-course-duration').value,
-            image: base64Img
-        };
-        const res = await callGoogleAPI('addCourseFromAdmin', [data]);
-        if (res && res.success) {
-            alert("تم نشر الدورة بنجاح!");
-            document.getElementById('form-add-course').reset();
-            loadCoursesFromServer();
-        } else {
-            alert("خطأ: " + (res ? res.error : "غير معروف"));
-        }
-        btn.innerText = originalText;
-        btn.disabled = false;
-    };
-
-    if (fileInput.files.length > 0) {
-        var reader = new FileReader();
-        reader.onload = function(ev) { sendData(ev.target.result); };
-        reader.readAsDataURL(fileInput.files[0]);
-    } else { sendData(""); }
-}
-
-async function deleteCourse(title) {
-    if (!title || title === 'undefined') { alert("خطأ: المعرف فارغ!"); return; }
-    if (!confirm("هل أنت متأكد من حذف الدورة: " + title + "؟")) return;
-    const res = await callGoogleAPI('removeCourseFinal', [title]);
-    if (res && res.success) {
-        alert("✅ تم حذف الدورة بنجاح");
-        loadCoursesFromServer();
-    } else {
-        alert("❌ فشل الحذف: " + (res ? res.error : "خطأ غير معروف"));
-    }
-}
-
-function handleAddNews(e) {
-    e.preventDefault();
-    var btn = document.getElementById('btn-submit-news');
-    var originalText = btn.innerText;
-    btn.innerText = "جاري النشر...";
-    btn.disabled = true;
-
-    var fileInput = document.getElementById('adm-news-img');
-    var sendData = async function(base64Img) {
-        var data = {
-            title: document.getElementById('adm-news-title').value,
-            details: document.getElementById('adm-news-details').value,
-            image: base64Img
-        };
-        const res = await callGoogleAPI('addNewsFromAdmin', [data]);
-        if (res && res.success) {
-            alert("تم بث الخبر بنجاح!");
-            document.getElementById('form-add-news').reset();
-            loadNewsFromServer();
-        } else {
-            alert("خطأ: " + (res ? res.error : "غير معروف"));
-        }
-        btn.innerText = originalText;
-        btn.disabled = false;
-    };
-
-    if (fileInput.files.length > 0) {
-        var reader = new FileReader();
-        reader.onload = function(ev) { sendData(ev.target.result); };
-        reader.readAsDataURL(fileInput.files[0]);
-    } else { sendData(""); }
-}
-
-async function deleteNews(title) {
-    if (!title || title === 'undefined') { alert("خطأ: المعرف فارغ!"); return; }
-    if (!confirm("هل أنت متأكد من حذف الخبر: " + title + "؟")) return;
-    const res = await callGoogleAPI('removeNewsFinal', [title]);
-    if (res && res.success) {
-        alert("✅ تم حذف الخبر بنجاح");
-        loadNewsFromServer();
-    } else {
-        alert("❌ فشل الحذف: " + (res ? res.error : "خطأ غير معروف"));
-    }
-}
-
-function filterAdminTable() {
-    var input = document.getElementById("admin-search-box");
-    if (!input) return;
-    var filter = input.value.toLowerCase().trim();
-
-    var table = document.getElementById("dataTableBody");
-    if (!table) return;
-    var tr = table.getElementsByTagName("tr");
-
-    for (var i = 0; i < tr.length; i++) {
-        var tdOrder = tr[i].getElementsByTagName("td")[0];
-        var tdName = tr[i].getElementsByTagName("td")[1];
-
-        if (tdOrder && tdName) {
-            var txtOrder = tdOrder.textContent || tdOrder.innerText;
-            var txtName = tdName.textContent || tdName.innerText;
-
-            if (txtOrder.toLowerCase().indexOf(filter) > -1 || txtName.toLowerCase().indexOf(filter) > -1) {
-                tr[i].style.display = "";
-            } else {
-                tr[i].style.display = "none";
-            }
-        }
-    }
-}
-
-// ==========================================
-// صفحات الهبوط وإدارة التفاصيل
-// ==========================================
-async function openLandingPage(courseTitle) {
-    var landingContainer = document.getElementById('landing-page-container');
-    var mainContent = document.getElementById('main-content');
-    var loader = document.getElementById('lp-loader');
-
-    if (!landingContainer || !mainContent) {
-        alert("تنبيه: واجهة صفحة الهبوط غير موجودة. تأكد من استدعاء CourseLanding في Index.html");
-        return;
-    }
-
-    mainContent.style.display = 'none';
-    landingContainer.classList.remove('hidden');
-    if (loader) loader.classList.remove('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    const data = await callGoogleAPI('fetchCourseLandingData', [courseTitle]);
-    if (loader) loader.classList.add('hidden');
-
-    if (data && data.success) {
-        try {
-            if (document.getElementById('lp-title')) document.getElementById('lp-title').innerText = data.title || '';
-            if (document.getElementById('lp-image')) document.getElementById('lp-image').src = data.image || '';
-            if (document.getElementById('lp-desc')) document.getElementById('lp-desc').innerText = data.description || '';
-            if (document.getElementById('lp-duration')) document.getElementById('lp-duration').innerText = data.duration || '';
-            if (document.getElementById('lp-trainer')) document.getElementById('lp-trainer').innerText = data.trainer || '';
-            if (document.getElementById('lp-target')) document.getElementById('lp-target').innerText = data.targetAudience || '';
-            if (document.getElementById('lp-fee')) document.getElementById('lp-fee').innerText = data.fee || '';
-
-            var waText = encodeURIComponent("مرحباً أكاديمية اقرأ، أرغب بالاستفسار عن برنامج: " + data.title);
-            if (document.getElementById('lp-whatsapp')) document.getElementById('lp-whatsapp').href = "https://wa.me/967777644293?text=" + waText;
-
-            var formatList = function(text, iconClass) {
-                if (!text) return "<li>لا توجد بيانات تفصيلية</li>";
-                return text.toString().split('-').filter(function(i) { return i.trim() !== ''; }).map(function(i) {
-                    return '<li><i class="' + iconClass + ' ml-2"></i>' + i.trim() + '</li>';
-                }).join('');
-            };
-
-            if (document.getElementById('lp-objectives')) document.getElementById('lp-objectives').innerHTML = formatList(data.objectives, "fas fa-check text-emerald-500");
-            if (document.getElementById('lp-syllabus')) document.getElementById('lp-syllabus').innerHTML = formatList(data.syllabus, "fas fa-angle-left text-[#D4A017]");
-
-            landingContainer.setAttribute('data-current-course', data.title);
-        } catch (e) {
-            alert("حدث خطأ فني أثناء ترتيب البيانات: " + e.message);
-            closeLandingPage();
-        }
-    } else {
-        alert(data ? data.error : "عذراً، لم يتم إدراج تفاصيل هذه الدورة بعد.");
-        closeLandingPage();
-    }
-}
-
-function closeLandingPage() {
-    var landingContainer = document.getElementById('landing-page-container');
-    var mainContent = document.getElementById('main-content');
-    var loader = document.getElementById('lp-loader');
-
-    if (loader) loader.classList.add('hidden');
-    if (landingContainer) landingContainer.classList.add('hidden');
-    if (mainContent) mainContent.style.display = 'block';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function registerFromLanding() {
-    var landingContainer = document.getElementById('landing-page-container');
-    if (!landingContainer) return;
-    var courseTitle = landingContainer.getAttribute('data-current-course');
-    closeLandingPage();
-    selectCourseDirectly(courseTitle);
-}
-
-async function openDetailsModal(title, event) {
-    document.getElementById('det-course-title').value = title;
-    document.getElementById('det-course-name').innerText = title;
-    document.getElementById('det-img').value = '';
-
-    var btn = event ? event.currentTarget : null;
-    var originalText = btn ? btn.innerText : 'التفاصيل';
-    if (btn) { btn.innerText = "...";
-        btn.disabled = true; }
-
-    const data = await callGoogleAPI('fetchCourseLandingData', [title]);
-    if (btn) { btn.innerText = originalText;
-        btn.disabled = false; }
-
-    if (data && data.success) {
-        document.getElementById('det-desc').value = data.description || '';
-        document.getElementById('det-obj').value = data.objectives || '';
-        document.getElementById('det-syl').value = data.syllabus || '';
-        document.getElementById('det-target').value = data.targetAudience || '';
-    } else {
-        document.getElementById('det-desc').value = '';
-        document.getElementById('det-obj').value = '';
-        document.getElementById('det-syl').value = '';
-        document.getElementById('det-target').value = '';
-    }
-    document.getElementById('details-modal').classList.remove('hidden');
-}
-
-function closeDetailsModal() { document.getElementById('details-modal').classList.add('hidden'); }
-
-function saveCourseDetails(event) {
-    var btn = event.currentTarget;
-    var originalText = btn.innerText;
-    btn.innerText = "جاري الرفع والحفظ...";
-    btn.disabled = true;
-
-    var fileInput = document.getElementById('det-img');
-
-    var sendData = async function(base64Img) {
-        var detailsData = {
-            title: document.getElementById('det-course-title').value,
-            description: document.getElementById('det-desc').value,
-            objectives: document.getElementById('det-obj').value,
-            syllabus: document.getElementById('det-syl').value,
-            targetAudience: document.getElementById('det-target').value,
-            image: base64Img
-        };
-
-        const res = await callGoogleAPI('saveDetailsToSheet', [detailsData]);
-        alert(res ? res.message || res.error || "تم التنفيذ" : "خطأ غير معروف");
-        if (res && res.success) closeDetailsModal();
-        btn.innerText = originalText;
-        btn.disabled = false;
-    };
-
-    if (fileInput.files.length > 0) {
-        var reader = new FileReader();
-        reader.onload = function(ev) { sendData(ev.target.result); };
-        reader.readAsDataURL(fileInput.files[0]);
-    } else {
-        sendData("");
-    }
-}
-
-function openEditCourseModal(id, title, trainer, dur, fee, cat) {
-    document.getElementById('edit-course-id').value = id;
-    document.getElementById('edit-title').value = title;
-    document.getElementById('edit-trainer').value = trainer;
-    document.getElementById('edit-dur').value = dur;
-    document.getElementById('edit-fee').value = fee;
-    document.getElementById('edit-cat').value = cat;
-    document.getElementById('edit-course-modal').classList.remove('hidden');
-}
-
-async function submitCourseEdit() {
-    var id = document.getElementById('edit-course-id').value;
-    var data = {
-        title: document.getElementById('edit-title').value,
-        trainer: document.getElementById('edit-trainer').value,
-        duration: document.getElementById('edit-dur').value,
-        fee: document.getElementById('edit-fee').value,
-        category: document.getElementById('edit-cat').value
-    };
-
-    document.getElementById('edit-course-modal').classList.add('hidden');
-    const res = await callGoogleAPI('updateCourseFromAdmin', [id, data]);
-    alert("تم حفظ التعديلات!");
-    loadCoursesFromServer();
-}
-
-async function addTestimonial() {
-    var data = {
-        name: document.getElementById('adm-test-name').value,
-        rating: document.getElementById('adm-test-rating').value,
-        text: document.getElementById('adm-test-text').value
-    };
-    const res = await callGoogleAPI('addTestimonialFromAdmin', [data]);
-    if (res) {
-        alert("تم الإضافة!");
-        document.getElementById('adm-test-name').value = '';
-        document.getElementById('adm-test-text').value = '';
-        loadTestimonialsFromServer();
-    }
-}
-
-async function deleteTestimonial(id) {
-    if (confirm("حذف الرأي؟")) {
-        await callGoogleAPI('deleteTestimonialFromAdmin', [id]);
-        loadTestimonialsFromServer();
-    }
-}
-
-function renderTestimonialsHome(data) {
-    var container = document.getElementById('testimonials-dynamic-container');
-    if (!container) return;
-    container.className = 'grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8';
-    container.innerHTML = '';
-
-    data.forEach(function(t) {
-        var stars = '⭐'.repeat(t.rating || 5);
-        container.insertAdjacentHTML('beforeend', `
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative text-right flex flex-col justify-between h-full hover:shadow-md transition-shadow duration-300">
-                <div>
-                    <div class="text-[#D4A017] opacity-10 text-4xl absolute top-4 left-4"><i class="fas fa-quote-left"></i></div>
-                    <div class="text-xs mb-3 text-amber-400">${stars}</div>
-                    <p class="text-xs text-slate-600 leading-relaxed mb-4">"${t.text}"</p>
-                </div>
-                <div class="font-bold text-[#0B1F4D] text-sm mt-auto">- ${t.name}</div>
-            </div>`);
-    });
-}
-
-function renderTestimonialsAdmin(data) {
-    var container = document.getElementById('admin-testimonials-list');
-    if (!container) return;
-    container.innerHTML = '';
-    data.forEach(function(t) {
-        container.insertAdjacentHTML('beforeend', `
-        <div class="flex justify-between items-center p-2 bg-white border rounded-lg text-xs">
-            <span><strong>${t.name}</strong>: ${t.text}</span>
-            <button onclick="deleteTestimonial('${t.id}')" class="text-rose-600 px-2 font-bold hover:underline">حذف</button>
-        </div>`);
-    });
-}
+        const saved = sessionStorage.getItem('user');
+        if (saved) { currentUser = JSON.parse(saved);
+            updateAuthUI(); }
+    } catch (e) {}
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) { try { localStorage.setItem('ref', ref); } catch (e) {} }
+    navigateTo('home');
+});
